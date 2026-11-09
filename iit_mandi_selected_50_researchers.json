@@ -1,0 +1,352 @@
+[
+  {
+    "id": 1,
+    "name": "Srikanth Sugavanam",
+    "designation": "Assistant Professor",
+    "school": "School of Computing & Electrical Engineering",
+    "openalex_id": null
+  },
+  {
+    "id": 2,
+    "name": "Shyam Kumar Masakapalli",
+    "designation": "Professor",
+    "school": "School of Biosciences & Bio Engineering",
+    "openalex_id": null
+  },
+  {
+    "id": 3,
+    "name": "Sanjeev Nara",
+    "designation": "Assistant Professor",
+    "school": "School of Biosciences & Bio Engineering",
+    "openalex_id": null
+  },
+  {
+    "id": 4,
+    "name": "Tulika Srivastava",
+    "designation": "Professor",
+    "school": "School of Biosciences & Bio Engineering",
+    "openalex_id": null
+  },
+  {
+    "id": 5,
+    "name": "Amit Jaiswal",
+    "designation": "Professor",
+    "school": "School of Biosciences & Bio Engineering",
+    "openalex_id": null
+  },
+  {
+    "id": 6,
+    "name": "Amit Prasad",
+    "designation": "Professor",
+    "school": "School of Biosciences & Bio Engineering",
+    "openalex_id": null
+  },
+  {
+    "id": 7,
+    "name": "Trayambak Basak",
+    "designation": "Associate Professor",
+    "school": "School of Biosciences & Bio Engineering",
+    "openalex_id": null
+  },
+  {
+    "id": 8,
+    "name": "Prasad Kasturi",
+    "designation": "Associate Professor",
+    "school": "School of Biosciences & Bio Engineering",
+    "openalex_id": null
+  },
+  {
+    "id": 9,
+    "name": "Baskar Bakthavachalu",
+    "designation": "Associate Professor",
+    "school": "School of Biosciences & Bio Engineering",
+    "openalex_id": null
+  },
+  {
+    "id": 10,
+    "name": "Sumit Murab",
+    "designation": "Associate Professor",
+    "school": "School of Biosciences & Bio Engineering",
+    "openalex_id": null
+  },
+  {
+    "id": 11,
+    "name": "Kharerin Hungyo",
+    "designation": "Assistant Professor",
+    "school": "School of Biosciences & Bio Engineering",
+    "openalex_id": null
+  },
+  {
+    "id": 12,
+    "name": "Ekta Makhija",
+    "designation": "Assistant Professor",
+    "school": "School of Biosciences & Bio Engineering",
+    "openalex_id": null
+  },
+  {
+    "id": 13,
+    "name": "Lokeshkumar Pisaram Ramteke",
+    "designation": "Assistant Professor",
+    "school": "School of Biosciences & Bio Engineering",
+    "openalex_id": null
+  },
+  {
+    "id": 14,
+    "name": "Satyajit Thakor",
+    "designation": "Professor",
+    "school": "School of Computing & Electrical Engineering",
+    "openalex_id": null
+  },
+  {
+    "id": 15,
+    "name": "Varun Dutt",
+    "designation": "Professor",
+    "school": "School of Computing & Electrical Engineering",
+    "openalex_id": null
+  },
+  {
+    "id": 16,
+    "name": "Padmanabhan Rajan",
+    "designation": "Professor",
+    "school": "School of Computing & Electrical Engineering",
+    "openalex_id": null
+  },
+  {
+    "id": 17,
+    "name": "Satinder Sharma",
+    "designation": "Professor",
+    "school": "School of Computing & Electrical Engineering",
+    "openalex_id": null
+  },
+  {
+    "id": 18,
+    "name": "Aditya Nigam",
+    "designation": "Associate Professor",
+    "school": "School of Computing & Electrical Engineering",
+    "openalex_id": null
+  },
+  {
+    "id": 19,
+    "name": "Kunal Ghosh",
+    "designation": "Associate Professor",
+    "school": "School of Computing & Electrical Engineering",
+    "openalex_id": null
+  },
+  {
+    "id": 20,
+    "name": "Hitesh Shrimali",
+    "designation": "Professor",
+    "school": "School of Computing & Electrical Engineering",
+    "openalex_id": null
+  },
+  {
+    "id": 21,
+    "name": "Shubhajit Roy Chowdhury",
+    "designation": "Professor",
+    "school": "School of Computing & Electrical Engineering",
+    "openalex_id": null
+  },
+  {
+    "id": 22,
+    "name": "Tushar Jain",
+    "designation": "Professor",
+    "school": "School of Computing & Electrical Engineering",
+    "openalex_id": null
+  },
+  {
+    "id": 23,
+    "name": "Siddhartha Sarma",
+    "designation": "Assistant Professor",
+    "school": "School of Computing & Electrical Engineering",
+    "openalex_id": null
+  },
+  {
+    "id": 24,
+    "name": "Rahul Shrestha",
+    "designation": "Associate Professor",
+    "school": "School of Computing & Electrical Engineering",
+    "openalex_id": null
+  },
+  {
+    "id": 25,
+    "name": "Himanshu Misra",
+    "designation": "Associate Professor",
+    "school": "School of Computing & Electrical Engineering",
+    "openalex_id": null
+  },
+  {
+    "id": 26,
+    "name": "Srinivasu Bodapati",
+    "designation": "Associate Professor",
+    "school": "School of Computing & Electrical Engineering",
+    "openalex_id": null
+  },
+  {
+    "id": 27,
+    "name": "Sreelakshmi Manjunath",
+    "designation": "Assistant Professor",
+    "school": "School of Computing & Electrical Engineering",
+    "openalex_id": null
+  },
+  {
+    "id": 28,
+    "name": "Pratim Kundu",
+    "designation": "Associate Professor",
+    "school": "School of Computing & Electrical Engineering",
+    "openalex_id": null
+  },
+  {
+    "id": 29,
+    "name": "Jinesh Machchhar",
+    "designation": "Assistant Professor",
+    "school": "School of Computing & Electrical Engineering",
+    "openalex_id": null
+  },
+  {
+    "id": 30,
+    "name": "Varunkumar Jayapaul",
+    "designation": "Assistant Professor",
+    "school": "School of Computing & Electrical Engineering",
+    "openalex_id": null
+  },
+  {
+    "id": 31,
+    "name": "Samar Agnihotri",
+    "designation": "Associate Professor",
+    "school": "School of Computing & Electrical Engineering",
+    "openalex_id": null
+  },
+  {
+    "id": 32,
+    "name": "Subrata Ghosh",
+    "designation": "Professor",
+    "school": "School of Chemical Sciences",
+    "openalex_id": null
+  },
+  {
+    "id": 33,
+    "name": "Venkata Krishnan",
+    "designation": "Professor",
+    "school": "School of Chemical Sciences",
+    "openalex_id": null
+  },
+  {
+    "id": 34,
+    "name": "Pradeep Parameswaran",
+    "designation": "Professor",
+    "school": "School of Chemical Sciences",
+    "openalex_id": null
+  },
+  {
+    "id": 35,
+    "name": "Prem Felix Siril",
+    "designation": "Professor",
+    "school": "School of Chemical Sciences",
+    "openalex_id": null
+  },
+  {
+    "id": 36,
+    "name": "Chayan K. Nandi",
+    "designation": "Professor",
+    "school": "School of Chemical Sciences",
+    "openalex_id": null
+  },
+  {
+    "id": 37,
+    "name": "Aniruddha Chakraborty",
+    "designation": "Professor",
+    "school": "School of Chemical Sciences",
+    "openalex_id": null
+  },
+  {
+    "id": 38,
+    "name": "Aditi Halder",
+    "designation": "Professor",
+    "school": "School of Chemical Sciences",
+    "openalex_id": null
+  },
+  {
+    "id": 39,
+    "name": "Bhaskar Mondal",
+    "designation": "Associate Professor",
+    "school": "School of Chemical Sciences",
+    "openalex_id": null
+  },
+  {
+    "id": 40,
+    "name": "Bindu Radhamany",
+    "designation": "Professor",
+    "school": "School of Physical Sciences",
+    "openalex_id": null
+  },
+  {
+    "id": 41,
+    "name": "Hari Varma",
+    "designation": "Professor",
+    "school": "School of Physical Sciences",
+    "openalex_id": null
+  },
+  {
+    "id": 42,
+    "name": "Suman Kalyan Pal",
+    "designation": "Professor",
+    "school": "School of Physical Sciences",
+    "openalex_id": null
+  },
+  {
+    "id": 43,
+    "name": "Prasanth P. Jose",
+    "designation": "Associate Professor",
+    "school": "School of Physical Sciences",
+    "openalex_id": null
+  },
+  {
+    "id": 44,
+    "name": "Kaustav Mukherjee",
+    "designation": "Professor",
+    "school": "School of Physical Sciences",
+    "openalex_id": null
+  },
+  {
+    "id": 45,
+    "name": "Rajendra Kr. Ray",
+    "designation": "Professor",
+    "school": "School of Mathematical & Statistical Sciences",
+    "openalex_id": null
+  },
+  {
+    "id": 46,
+    "name": "Nitu Kumari",
+    "designation": "Professor",
+    "school": "School of Mathematical & Statistical Sciences",
+    "openalex_id": null
+  },
+  {
+    "id": 47,
+    "name": "Rajneesh Sharma",
+    "designation": "Associate Professor",
+    "school": "School of Civil & Environmental Engineering",
+    "openalex_id": null
+  },
+  {
+    "id": 48,
+    "name": "Dericks Praise Shukla",
+    "designation": "Professor",
+    "school": "School of Civil & Environmental Engineering",
+    "openalex_id": null
+  },
+  {
+    "id": 49,
+    "name": "Rahul Vaish",
+    "designation": "Professor",
+    "school": "School of Mechanical & Materials Engineering",
+    "openalex_id": null
+  },
+  {
+    "id": 50,
+    "name": "Rajeev Kumar",
+    "designation": "Professor",
+    "school": "School of Mechanical & Materials Engineering",
+    "openalex_id": null
+  }
+]

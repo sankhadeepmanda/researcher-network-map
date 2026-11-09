@@ -1,0 +1,2383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IIT Mandi Research Similarity Network - OpenAlex</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<style>
+:root{
+  --navy:#173B63;
+  --navy-dark:#102846;
+  --teal:#00A6A6;
+  --teal-dark:#00807f;
+  --bg:#F7F9FC;
+  --panel:#FFFFFF;
+  --text:#172033;
+  --secondary:#6B7280;
+  --border:#E5E7EB;
+  --danger:#B3261E;
+  --warn:#B7791F;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  padding:16px;
+}
+.container{
+  max-width:1600px;
+  margin:0 auto;
+  background:var(--panel);
+  border-radius:10px;
+  box-shadow:0 1px 3px rgba(23,32,51,.08),0 8px 24px rgba(23,32,51,.06);
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  height:96vh;
+  border:1px solid var(--border);
+}
+.header{
+  background:var(--navy);
+  color:#fff;
+  padding:16px 24px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  flex-wrap:wrap;
+}
+.header-titles h1{font-size:18px;font-weight:600;letter-spacing:.2px;}
+.header-titles p{opacity:.75;font-size:12px;margin-top:2px;}
+.header-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.status-pill{
+  font-size:11px;
+  padding:5px 10px;
+  border-radius:20px;
+  background:rgba(255,255,255,.12);
+  color:#fff;
+  white-space:nowrap;
+}
+.status-pill.offline{background:rgba(183,121,31,.85);}
+.status-pill.cached{background:rgba(0,166,166,.35);}
+.search-box{
+  display:flex;
+  align-items:center;
+  background:rgba(255,255,255,.12);
+  border-radius:6px;
+  padding:0 8px;
+}
+.search-box input{
+  background:transparent;
+  border:none;
+  outline:none;
+  color:#fff;
+  font-size:12px;
+  padding:7px 4px;
+  width:190px;
+}
+.search-box input::placeholder{color:rgba(255,255,255,.6);}
+.content{display:flex;flex:1;overflow:hidden;}
+.sidebar{
+  width:320px;
+  background:#FBFCFE;
+  border-right:1px solid var(--border);
+  padding:16px;
+  overflow-y:auto;
+  flex-shrink:0;
+}
+.panel{
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:14px;
+  margin-bottom:14px;
+}
+.panel-title{
+  font-size:11px;
+  font-weight:700;
+  color:var(--secondary);
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  margin-bottom:10px;
+}
+.stat-item{
+  display:flex;justify-content:space-between;
+  padding:6px 0;font-size:13px;
+  border-bottom:1px solid #F1F3F7;
+}
+.stat-item:last-child{border-bottom:none;}
+.stat-label{color:var(--secondary);}
+.stat-value{font-weight:700;color:var(--navy);}
+.researcher-info .researcher-name{font-weight:700;color:var(--text);margin-bottom:4px;font-size:15px;}
+.researcher-detail{margin:5px 0;line-height:1.4;font-size:12.5px;color:var(--text);}
+.researcher-detail a{color:var(--teal-dark);}
+.detail-label{
+  color:var(--secondary);font-weight:700;font-size:10.5px;
+  text-transform:uppercase;letter-spacing:.05em;
+  margin-top:12px;margin-bottom:6px;
+}
+.topic-tag{
+  display:inline-block;background:#EAF6F6;color:var(--teal-dark);
+  padding:3px 8px;border-radius:20px;font-size:11px;margin:3px 4px 3px 0;
+  border:1px solid #D3ECEC;
+}
+.similar-row{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:5px 0;font-size:12px;border-bottom:1px dashed #F1F3F7;cursor:pointer;
+}
+.similar-row:hover{color:var(--teal-dark);}
+.similar-pct{font-weight:700;color:var(--navy);font-size:11px;}
+.empty-hint{color:var(--secondary);font-size:12px;line-height:1.5;}
+.btn{
+  padding:7px 12px;background:var(--navy);color:#fff;border:none;
+  border-radius:6px;cursor:pointer;font-size:11.5px;font-weight:600;
+  transition:background .15s;
+}
+.btn:hover{background:var(--navy-dark);}
+.btn.secondary{background:#EEF1F6;color:var(--text);}
+.btn.secondary:hover{background:#E2E6EE;}
+.btn.teal{background:var(--teal);}
+.btn.teal:hover{background:var(--teal-dark);}
+.btn.danger{background:var(--danger);}
+.btn.danger:hover{background:#8f1f19;}
+.btn.small{padding:5px 9px;font-size:10.5px;}
+.btn:disabled{opacity:.45;cursor:not-allowed;}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+.visualization{flex:1;position:relative;background:var(--bg);overflow:hidden;}
+canvas{display:block;width:100%;height:100%;touch-action:none;}
+.loading{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  background:var(--panel);padding:26px 30px;border-radius:10px;
+  box-shadow:0 4px 20px rgba(23,32,51,.15);text-align:center;z-index:1000;
+  max-width:320px;
+}
+.spinner{
+  border:3px solid #EEF1F6;border-top:3px solid var(--teal);
+  border-radius:50%;width:34px;height:34px;
+  animation:spin 1s linear infinite;margin:0 auto 14px;
+}
+@keyframes spin{0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}
+.legend{
+  position:absolute;bottom:16px;left:16px;background:var(--panel);
+  padding:12px 14px;border-radius:8px;box-shadow:0 2px 10px rgba(23,32,51,.10);
+  font-size:11px;border:1px solid var(--border);max-width:230px;
+}
+.legend-title{font-size:10px;font-weight:700;color:var(--secondary);text-transform:uppercase;margin-bottom:8px;letter-spacing:.05em;}
+.legend-item{display:flex;align-items:center;margin-bottom:6px;color:var(--text);}
+.legend-dot{width:9px;height:9px;border-radius:50%;margin-right:8px;flex-shrink:0;}
+.legend-line{width:18px;height:0;border-top:2px solid var(--secondary);margin-right:8px;flex-shrink:0;}
+.legend-note{color:var(--secondary);font-size:10px;margin-top:6px;line-height:1.4;}
+.tooltip{
+  position:absolute;background:var(--navy-dark);color:#fff;
+  padding:10px 12px;border-radius:6px;font-size:11.5px;pointer-events:none;
+  z-index:200;max-width:250px;white-space:normal;line-height:1.5;display:none;
+  box-shadow:0 4px 14px rgba(0,0,0,.25);
+}
+.tooltip b{display:block;font-size:12.5px;margin-bottom:2px;}
+.tooltip .tt-muted{color:rgba(255,255,255,.65);font-size:10.5px;}
+.map-controls{
+  position:absolute;top:16px;right:16px;background:var(--panel);
+  border-radius:8px;box-shadow:0 2px 10px rgba(23,32,51,.10);
+  border:1px solid var(--border);display:flex;flex-direction:column;
+  overflow:hidden;
+}
+.map-controls button{
+  width:36px;height:36px;background:var(--panel);border:none;
+  border-bottom:1px solid var(--border);color:var(--navy);font-size:15px;
+  cursor:pointer;
+}
+.map-controls button:last-child{border-bottom:none;}
+.map-controls button:hover{background:#F1F5FA;}
+.toggle-panel{
+  position:absolute;top:16px;left:16px;background:var(--panel);
+  border:1px solid var(--border);border-radius:8px;
+  box-shadow:0 2px 10px rgba(23,32,51,.10);padding:10px 12px;font-size:11.5px;
+  min-width:190px;
+}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:4px 0;}
+.toggle-row label{color:var(--text);cursor:pointer;}
+.slider-row{margin-top:8px;}
+.slider-row .slabel{display:flex;justify-content:space-between;font-size:11px;color:var(--secondary);margin-bottom:4px;}
+input[type=range]{width:100%;accent-color:var(--teal);}
+.switch{position:relative;width:32px;height:18px;flex-shrink:0;}
+.switch input{opacity:0;width:0;height:0;}
+.switch .slider{position:absolute;inset:0;background:#D8DEE8;border-radius:20px;cursor:pointer;transition:.15s;}
+.switch .slider:before{content:"";position:absolute;width:14px;height:14px;left:2px;top:2px;background:#fff;border-radius:50%;transition:.15s;}
+.switch input:checked + .slider{background:var(--teal);}
+.switch input:checked + .slider:before{transform:translateX(14px);}
+.unmatched-list{margin-top:6px;}
+.unmatched-item{padding:6px 0;border-bottom:1px solid #F1F3F7;font-size:11.5px;line-height:1.4;}
+.unmatched-item:last-child{border-bottom:none;}
+.filter-panel{display:none;}
+.filter-panel.open{display:block;}
+.filter-row{margin-bottom:10px;}
+.filter-row label{display:block;font-size:11px;color:var(--secondary);margin-bottom:4px;font-weight:600;}
+.filter-row select, .filter-row input[type=number]{
+  width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;color:var(--text);
+}
+.link-toggle{
+  font-size:11.5px;color:var(--teal-dark);cursor:pointer;background:none;border:none;
+  padding:2px 0;font-weight:600;
+}
+/* Modal */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(15,20,32,.55);
+  display:none;align-items:center;justify-content:center;z-index:2000;padding:20px;
+}
+.modal-overlay.open{display:flex;}
+.modal{
+  background:var(--panel);border-radius:10px;max-width:480px;width:100%;
+  max-height:85vh;overflow-y:auto;box-shadow:0 10px 40px rgba(0,0,0,.3);
+}
+.modal-header{
+  padding:16px 20px;border-bottom:1px solid var(--border);
+  display:flex;justify-content:space-between;align-items:center;
+}
+.modal-header h3{font-size:14px;color:var(--navy);text-transform:uppercase;letter-spacing:.04em;}
+.modal-close{background:none;border:none;font-size:18px;cursor:pointer;color:var(--secondary);}
+.modal-body{padding:18px 20px;font-size:13px;line-height:1.6;}
+.modal-body .mrow{display:flex;justify-content:space-between;margin-bottom:10px;font-weight:600;}
+.modal-footer{padding:14px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;}
+.cache-stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+.cache-stat-box{background:#F7F9FC;border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;}
+.cache-stat-box .n{font-size:20px;font-weight:700;color:var(--navy);}
+.cache-stat-box .l{font-size:10.5px;color:var(--secondary);text-transform:uppercase;margin-top:2px;}
+.shortlist-item{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #F1F3F7;font-size:12px;}
+.shortlist-item .rm{color:var(--danger);cursor:pointer;font-size:11px;background:none;border:none;}
+/* ============ NAV BAR + VIEWS ============ */
+.navbar{
+  background:var(--navy-dark);
+  display:flex;align-items:center;gap:2px;
+  padding:0 16px;overflow-x:auto;flex-shrink:0;
+}
+.nav-tab{
+  background:none;border:none;color:rgba(255,255,255,.7);
+  padding:11px 15px;font-size:12.5px;font-weight:600;cursor:pointer;
+  border-bottom:3px solid transparent;white-space:nowrap;
+  display:flex;align-items:center;gap:7px;transition:color .15s,border-color .15s;
+}
+.nav-tab:hover{color:#fff;}
+.nav-tab.active{color:#fff;border-bottom-color:var(--teal);}
+.nav-tab .nav-badge{
+  background:rgba(255,255,255,.18);border-radius:20px;
+  padding:1px 7px;font-size:10.5px;font-weight:700;
+}
+.nav-tab.active .nav-badge{background:var(--teal);}
+.view{display:none;flex:1;min-height:0;}
+.view.active{display:flex;}
+.view-scroll{flex-direction:column;}
+.view-body{flex:1;overflow-y:auto;padding:20px 24px;}
+.view-head{
+  display:flex;justify-content:space-between;align-items:center;
+  gap:14px;flex-wrap:wrap;margin-bottom:16px;
+}
+.view-head h2{font-size:16px;color:var(--navy);font-weight:700;}
+.view-head p{font-size:12px;color:var(--secondary);margin-top:3px;}
+.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.toolbar input[type=text],.toolbar select{
+  padding:7px 10px;border:1px solid var(--border);border-radius:6px;
+  font-size:12px;color:var(--text);background:#fff;outline:none;
+}
+.toolbar input[type=text]{min-width:210px;}
+.toolbar input[type=text]:focus,.toolbar select:focus{border-color:var(--teal);}
+.seg{display:flex;border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.seg button{
+  background:#fff;border:none;padding:7px 11px;font-size:11.5px;
+  cursor:pointer;color:var(--secondary);font-weight:600;
+}
+.seg button.on{background:var(--navy);color:#fff;}
+
+/* researcher cards */
+.dir-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(268px,1fr));gap:14px;}
+.rcard{
+  border:1px solid var(--border);border-radius:10px;background:var(--panel);
+  overflow:hidden;display:flex;flex-direction:column;
+  transition:box-shadow .15s,transform .15s,border-color .15s;
+}
+.rcard:hover{box-shadow:0 6px 20px rgba(23,32,51,.12);transform:translateY(-2px);border-color:#CBD5E1;}
+.rcard-top{display:flex;gap:12px;padding:14px;align-items:flex-start;min-height:112px;}
+.rcard-mailrow{display:flex;align-items:center;gap:6px;margin-top:6px;}
+.rcard-mailrow .icon-btn{flex-shrink:0;line-height:1;}
+.rphoto{
+  width:66px;height:66px;border-radius:10px;object-fit:cover;flex-shrink:0;
+  background:#EEF1F6;border:1px solid var(--border);
+}
+.rphoto-fallback{
+  width:66px;height:66px;border-radius:10px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--navy);color:#fff;font-weight:700;font-size:20px;letter-spacing:.5px;
+}
+.rcard-id{
+  position:absolute;top:8px;right:10px;font-size:10px;
+  color:var(--secondary);font-weight:700;
+}
+.rcard-name{font-size:14px;font-weight:700;color:var(--text);line-height:1.25;cursor:pointer;}
+.rcard-name:hover{color:var(--teal-dark);}
+.rcard-meta{font-size:11.5px;color:var(--secondary);margin-top:3px;line-height:1.35;}
+.rcard-mail{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:11.5px;color:var(--teal-dark);text-decoration:none;word-break:break-all;
+}
+.rcard-mail:hover{text-decoration:underline;}
+.rcard-body{padding:0 14px 12px;}
+.rcard-stats{display:flex;gap:14px;padding:9px 14px;background:#FAFBFD;border-top:1px solid var(--border);border-bottom:1px solid var(--border);}
+.rstat{font-size:11px;color:var(--secondary);}
+.rstat b{display:block;font-size:14px;color:var(--navy);font-weight:700;}
+.rcard-actions{display:flex;gap:6px;padding:10px 14px;margin-top:auto;flex-wrap:wrap;}
+.chip{
+  display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;
+  text-transform:uppercase;letter-spacing:.04em;
+}
+.chip.matched{background:#EAF6F6;color:var(--teal-dark);border:1px solid #D3ECEC;}
+.chip.unmatched{background:#FDF4E7;color:var(--warn);border:1px solid #F5E3C8;}
+.icon-btn{
+  background:none;border:1px solid var(--border);border-radius:5px;
+  cursor:pointer;font-size:10.5px;padding:3px 7px;color:var(--secondary);
+}
+.icon-btn:hover{background:#F1F5FA;color:var(--navy);}
+
+/* table view */
+.dir-table{width:100%;border-collapse:collapse;font-size:12.5px;}
+.dir-table th{
+  text-align:left;padding:9px 10px;background:#F7F9FC;color:var(--secondary);
+  font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;
+  border-bottom:1px solid var(--border);position:sticky;top:0;cursor:pointer;white-space:nowrap;
+}
+.dir-table th:hover{color:var(--navy);}
+.dir-table td{padding:8px 10px;border-bottom:1px solid #F1F3F7;vertical-align:middle;}
+.dir-table tr:hover td{background:#FAFBFD;}
+.dir-table .tphoto{width:34px;height:34px;border-radius:6px;object-fit:cover;background:#EEF1F6;}
+.dir-table div.tphoto{
+  display:flex;align-items:center;justify-content:center;
+  background:var(--navy);color:#fff;font-size:12px;font-weight:700;
+}
+.dir-table a{color:var(--teal-dark);}
+
+/* schools + topics */
+.school-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:14px;}
+.school-card{border:1px solid var(--border);border-radius:10px;padding:16px;background:var(--panel);}
+.school-card h3{font-size:13.5px;color:var(--navy);margin-bottom:4px;}
+.school-bar{height:6px;border-radius:6px;background:#EEF1F6;margin:10px 0 12px;overflow:hidden;}
+.school-bar span{display:block;height:100%;background:var(--teal);}
+.avatar-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px;}
+.avatar-row img,.avatar-row div{
+  width:32px;height:32px;border-radius:50%;object-fit:cover;cursor:pointer;
+  border:2px solid #fff;box-shadow:0 0 0 1px var(--border);
+}
+.avatar-row div{background:var(--navy);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;}
+.topic-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:10px;}
+.topic-row{
+  border:1px solid var(--border);border-radius:8px;padding:11px 13px;background:var(--panel);
+}
+.topic-row .tname{font-size:12.5px;font-weight:600;color:var(--text);}
+.topic-row .tpeople{font-size:11.5px;color:var(--secondary);margin-top:4px;line-height:1.5;}
+.topic-row .tpeople span{color:var(--teal-dark);cursor:pointer;}
+.topic-row .tpeople span:hover{text-decoration:underline;}
+.count-pill{
+  float:right;background:#EEF1F6;color:var(--navy);font-size:10.5px;
+  font-weight:700;border-radius:20px;padding:2px 8px;
+}
+
+/* profile modal */
+.profile-head{display:flex;gap:16px;align-items:flex-start;margin-bottom:6px;}
+.profile-head img{width:92px;height:92px;border-radius:12px;object-fit:cover;border:1px solid var(--border);}
+.profile-head .ph-fallback{
+  width:92px;height:92px;border-radius:12px;background:var(--navy);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;
+}
+.profile-name{font-size:17px;font-weight:700;color:var(--text);}
+.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0;}
+.pbox{background:#F7F9FC;border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;}
+.pbox .n{font-size:19px;font-weight:700;color:var(--navy);}
+.pbox .l{font-size:10px;color:var(--secondary);text-transform:uppercase;margin-top:2px;}
+.copy-toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  background:var(--navy-dark);color:#fff;padding:9px 16px;border-radius:20px;
+  font-size:12px;z-index:3000;opacity:0;pointer-events:none;transition:opacity .2s;
+}
+.copy-toast.show{opacity:1;}
+.empty-state{text-align:center;padding:48px 20px;color:var(--secondary);font-size:13px;}
+
+@media (max-width:900px){
+  body{padding:0;}
+  .container{height:100vh;border-radius:0;}
+  .content{flex-direction:column;}
+  .sidebar{width:100%;max-height:38vh;order:2;}
+  .visualization{order:1;min-height:44vh;}
+  .search-box input{width:120px;}
+  .view-body{padding:14px;}
+  .dir-grid{grid-template-columns:1fr;}
+  .pgrid{grid-template-columns:1fr 1fr;}
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="header-titles">
+      <h1>IIT Mandi Research Similarity Network</h1>
+      <p>OpenAlex-powered topic similarity map · 50 selected researchers</p>
+    </div>
+    <div class="header-actions">
+      <div class="search-box">
+        <input type="text" id="search-input" placeholder="Search researcher or topic...">
+      </div>
+      <span class="status-pill" id="data-status-pill">Loading...</span>
+      <button class="btn secondary small" id="data-btn" onclick="openDataModal()">Data</button>
+    </div>
+  </div>
+
+  <nav class="navbar">
+    <button class="nav-tab active" data-view="map" onclick="switchView('map')">◉ Network Map</button>
+    <button class="nav-tab" data-view="directory" onclick="switchView('directory')">👥 Researchers <span class="nav-badge" id="nav-count-researchers">50</span></button>
+    <button class="nav-tab" data-view="schools" onclick="switchView('schools')">🏛 Schools <span class="nav-badge" id="nav-count-schools">0</span></button>
+    <button class="nav-tab" data-view="topics" onclick="switchView('topics')">🔬 Topics <span class="nav-badge" id="nav-count-topics">0</span></button>
+    <button class="nav-tab" data-view="shortlist" onclick="switchView('shortlist')">★ Shortlist <span class="nav-badge" id="nav-count-shortlist">0</span></button>
+  </nav>
+
+  <div class="view active" id="view-map">
+  <div class="content">
+    <div class="sidebar">
+      <div class="panel stats">
+        <div class="panel-title">Network Overview</div>
+        <div class="stat-item"><span class="stat-label">Researchers</span><span class="stat-value" id="stat-researchers">0</span></div>
+        <div class="stat-item"><span class="stat-label">Matched</span><span class="stat-value" id="stat-matched">0</span></div>
+        <div class="stat-item"><span class="stat-label">Unmatched</span><span class="stat-value" id="stat-unmatched">0</span></div>
+        <div class="stat-item"><span class="stat-label">Visible connections</span><span class="stat-value" id="stat-connections">0</span></div>
+        <div class="stat-item"><span class="stat-label">Avg similarity</span><span class="stat-value" id="stat-similarity">0%</span></div>
+        <div class="stat-item"><span class="stat-label">Topics covered</span><span class="stat-value" id="stat-topics">0</span></div>
+      </div>
+
+      <div class="panel" id="filter-toggle-panel">
+        <div class="panel-title" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="toggleFilterPanel()">
+          <span>Advanced Filters</span>
+          <span class="link-toggle" id="filter-toggle-caret">Show ▾</span>
+        </div>
+        <div class="filter-panel" id="filter-panel">
+          <div class="filter-row">
+            <label>School</label>
+            <select id="filter-school" onchange="applyFilters()">
+              <option value="">All schools</option>
+            </select>
+          </div>
+          <div class="filter-row">
+            <label>Minimum publications</label>
+            <input type="number" id="filter-min-pubs" min="0" value="0" onchange="applyFilters()">
+          </div>
+          <div class="filter-row">
+            <label>Minimum citations</label>
+            <input type="number" id="filter-min-cites" min="0" value="0" onchange="applyFilters()">
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" id="shortlist-panel">
+        <div class="panel-title">My Research Shortlist (<span id="shortlist-count">0</span>)</div>
+        <div id="shortlist-body"><div class="empty-hint">Add researchers from their profile to compare them here.</div></div>
+        <div class="btn-row">
+          <button class="btn secondary small" onclick="compareShortlist()">Compare</button>
+          <button class="btn secondary small" onclick="exportShortlist()">Export</button>
+        </div>
+      </div>
+
+      <div id="researcher-details">
+        <div class="panel researcher-info">
+          <div class="empty-hint">Click a researcher on the map to see their profile, topic fingerprint, and similar researchers.</div>
+        </div>
+      </div>
+
+      <div class="panel" id="unmatched-panel" style="display:none;">
+        <div class="panel-title">Unmatched Researchers</div>
+        <div id="unmatched-body" class="unmatched-list"></div>
+      </div>
+    </div>
+
+    <div class="visualization">
+      <div class="loading" id="loading-div">
+        <div class="spinner"></div>
+        <p id="loading-text">Preparing IIT Mandi research data...</p>
+      </div>
+      <canvas id="canvas"></canvas>
+      <div class="tooltip" id="tooltip"></div>
+
+      <div class="toggle-panel">
+        <div class="toggle-row">
+          <label for="toggle-labels">Labels</label>
+          <label class="switch"><input type="checkbox" id="toggle-labels" checked onchange="render()"><span class="slider"></span></label>
+        </div>
+        <div class="toggle-row">
+          <label for="toggle-clusters">Clusters</label>
+          <label class="switch"><input type="checkbox" id="toggle-clusters" checked onchange="render()"><span class="slider"></span></label>
+        </div>
+        <div class="toggle-row">
+          <label for="toggle-edges">Edges</label>
+          <label class="switch"><input type="checkbox" id="toggle-edges" checked onchange="render()"><span class="slider"></span></label>
+        </div>
+        <div class="slider-row">
+          <div class="slabel"><span>Similarity threshold</span><span id="threshold-value">20%</span></div>
+          <input type="range" id="threshold-slider" min="0" max="100" value="20" oninput="onThresholdChange()">
+        </div>
+      </div>
+
+      <div class="legend">
+        <div class="legend-title">Legend</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--navy);"></div><span>Researcher (node)</span></div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--teal);width:13px;height:13px;"></div><span>Node size = connectivity</span></div>
+        <div class="legend-item"><div class="legend-line" style="border-top-width:3px;border-color:var(--teal);"></div><span>High topic similarity</span></div>
+        <div class="legend-item"><div class="legend-line" style="opacity:.4;"></div><span>Low topic similarity</span></div>
+        <div class="legend-item"><div class="legend-dot" style="background:transparent;border:2px dashed var(--secondary);width:11px;height:11px;"></div><span>Topic-based cluster</span></div>
+        <div class="legend-note">Edges represent OpenAlex topic similarity, not collaboration or co-authorship.</div>
+      </div>
+
+      <div class="map-controls">
+        <button title="Zoom in" onclick="zoomBy(1.25)">+</button>
+        <button title="Zoom out" onclick="zoomBy(0.8)">−</button>
+        <button title="Fit to view" onclick="fitToView()">⤢</button>
+        <button title="Reset" onclick="resetView()">⟳</button>
+        <button title="Center selected" onclick="centerSelected()">◎</button>
+        <button title="Fullscreen" onclick="toggleFullscreen()">⛶</button>
+        <button title="Export" onclick="exportData()">⬇</button>
+      </div>
+    </div>
+  </div>
+  </div><!-- /view-map -->
+
+  <!-- ============ RESEARCHERS DIRECTORY ============ -->
+  <div class="view view-scroll" id="view-directory">
+    <div class="view-body">
+      <div class="view-head">
+        <div>
+          <h2>All 50 Researchers</h2>
+          <p id="dir-subtitle">Profiles, contact details and research metrics for every selected researcher.</p>
+        </div>
+        <div class="toolbar">
+          <input type="text" id="dir-search" placeholder="Search name, email, topic..." oninput="renderDirectory()">
+          <select id="dir-school" onchange="renderDirectory()"><option value="">All schools</option></select>
+          <select id="dir-desig" onchange="renderDirectory()"><option value="">All designations</option></select>
+          <select id="dir-sort" onchange="renderDirectory()">
+            <option value="id">Sort: List order</option>
+            <option value="name">Sort: Name (A–Z)</option>
+            <option value="citations">Sort: Citations</option>
+            <option value="publications">Sort: Publications</option>
+            <option value="school">Sort: School</option>
+          </select>
+          <div class="seg">
+            <button id="dir-view-grid" class="on" onclick="setDirLayout('grid')">▦ Cards</button>
+            <button id="dir-view-table" onclick="setDirLayout('table')">☰ Table</button>
+          </div>
+          <button class="btn secondary small" onclick="exportDirectoryCsv()">⬇ CSV</button>
+          <button class="btn secondary small" onclick="copyAllEmails()">✉ Copy all emails</button>
+        </div>
+      </div>
+      <div id="dir-container"></div>
+    </div>
+  </div>
+
+  <!-- ============ SCHOOLS ============ -->
+  <div class="view view-scroll" id="view-schools">
+    <div class="view-body">
+      <div class="view-head">
+        <div>
+          <h2>Schools</h2>
+          <p>Distribution of the 50 selected researchers across IIT Mandi schools.</p>
+        </div>
+      </div>
+      <div id="schools-container" class="school-grid"></div>
+    </div>
+  </div>
+
+  <!-- ============ TOPICS ============ -->
+  <div class="view view-scroll" id="view-topics">
+    <div class="view-body">
+      <div class="view-head">
+        <div>
+          <h2>Research Topics</h2>
+          <p>OpenAlex topics across the network. Shared topics are what create the map's connections.</p>
+        </div>
+        <div class="toolbar">
+          <input type="text" id="topic-search" placeholder="Filter topics..." oninput="renderTopics()">
+          <select id="topic-sort" onchange="renderTopics()">
+            <option value="count">Sort: Most researchers</option>
+            <option value="name">Sort: A–Z</option>
+          </select>
+        </div>
+      </div>
+      <div id="topics-container" class="topic-list"></div>
+    </div>
+  </div>
+
+  <!-- ============ SHORTLIST ============ -->
+  <div class="view view-scroll" id="view-shortlist">
+    <div class="view-body">
+      <div class="view-head">
+        <div>
+          <h2>My Research Shortlist</h2>
+          <p>Researchers you've saved. Stored locally in this browser.</p>
+        </div>
+        <div class="toolbar">
+          <button class="btn secondary small" onclick="exportShortlist()">⬇ Export JSON</button>
+          <button class="btn secondary small" onclick="copyShortlistEmails()">✉ Copy emails</button>
+          <button class="btn danger small" onclick="clearShortlist()">Clear all</button>
+        </div>
+      </div>
+      <div id="shortlist-view-container"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Researcher profile modal -->
+<div class="modal-overlay" id="profile-modal">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal-header"><h3>Researcher Profile</h3><button class="modal-close" onclick="closeProfileModal()">✕</button></div>
+    <div class="modal-body" id="profile-modal-body"></div>
+  </div>
+</div>
+
+<div class="copy-toast" id="copy-toast"></div>
+
+<!-- Data / Cache modal -->
+<div class="modal-overlay" id="data-modal">
+  <div class="modal">
+    <div class="modal-header"><h3>Local Research Data</h3><button class="modal-close" onclick="closeDataModal()">✕</button></div>
+    <div class="modal-body">
+      <div class="cache-stat-grid">
+        <div class="cache-stat-box"><div class="n" id="cache-total">0</div><div class="l">Stored locally</div></div>
+        <div class="cache-stat-box"><div class="n" id="cache-fresh">0</div><div class="l">Fresh</div></div>
+        <div class="cache-stat-box"><div class="n" id="cache-stale">0</div><div class="l">Stale</div></div>
+        <div class="cache-stat-box"><div class="n" id="cache-unresolved">0</div><div class="l">Unresolved</div></div>
+      </div>
+      <div class="researcher-detail">Last updated: <strong id="cache-updated">—</strong></div>
+      <div class="researcher-detail">OpenAlex requests this session: <strong id="cache-requests">0</strong></div>
+      <div id="cache-status-note" class="empty-hint" style="margin-top:8px;"></div>
+    </div>
+    <div class="modal-footer" style="flex-wrap:wrap;">
+      <button class="btn secondary small" id="refresh-expired-btn" onclick="refreshExpired()">Refresh Expired Data</button>
+      <button class="btn secondary small" onclick="refreshAll()">Refresh All</button>
+      <button class="btn teal small" onclick="exportData()">Export Local Data</button>
+      <button class="btn danger small" onclick="clearLocalData()">Clear Local Data</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edge explanation modal -->
+<div class="modal-overlay" id="edge-modal">
+  <div class="modal">
+    <div class="modal-header"><h3>Why are these researchers connected?</h3><button class="modal-close" onclick="closeEdgeModal()">✕</button></div>
+    <div class="modal-body" id="edge-modal-body"></div>
+  </div>
+</div>
+
+<!-- Compare modal -->
+<div class="modal-overlay" id="compare-modal">
+  <div class="modal" style="max-width:640px;">
+    <div class="modal-header"><h3>Compare Shortlist</h3><button class="modal-close" onclick="closeCompareModal()">✕</button></div>
+    <div class="modal-body" id="compare-modal-body"></div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   EMBEDDED SEED DATA
+   This is a previously captured, real OpenAlex resolution result
+   for the exact 50-researcher list bundled with this app. It is
+   used ONLY to bootstrap the local cache on first run so the map
+   works instantly without requiring live OpenAlex requests. It
+   never overwrites a cache that already exists.
+   ============================================================ */
+const EMBEDDED_SEED = {"researchers":[{"selectedId":1,"selectedName":"Srikanth Sugavanam","designation":"Assistant Professor","school":"School of Computing & Electrical Engineering","id":"https://openalex.org/A5039434366","openalexId":"https://openalex.org/A5039434366","name":"Srikanth Sugavanam","institution":"Indian Institute of Technology Mandi","institutions":[{"id":"https://openalex.org/I9579091","display_name":"Indian Institute of Technology Mandi","country_code":"IN"}],"topics":["Advanced Fiber Laser Technologies","Photonic Crystal and Fiber Optics","Laser-Matter Interactions and Applications","Advanced Fiber Optic Sensors","Random lasers and scattering media"],"publications":89,"citationCount":1901,"orcid":"https://orcid.org/0000-0002-0914-222X","matchScore":103,"matchedBy":"name_search"},{"selectedId":2,"selectedName":"Shyam Kumar Masakapalli","designation":"Professor","school":"School of Biosciences & Bio Engineering","id":"https://openalex.org/A5053262267","openalexId":"https://openalex.org/A5053262267","name":"Shyam Kumar Masakapalli","institution":"Indian Institute of Technology Mandi","institutions":[{"id":"https://openalex.org/I9579091","display_name":"Indian Institute of Technology Mandi","country_code":"IN"}],"topics":["Microbial Metabolic Engineering and Bioproduction","Photosynthetic Processes and Mechanisms","Light effects on plants","Metabolomics and Mass Spectrometry Studies","Anaerobic Digestion and Biogas Production"],"publications":88,"citationCount":1993,"orcid":"https://orcid.org/0000-0003-1988-5569","matchScore":103,"matchedBy":"name_search"},{"selectedId":3,"selectedName":"Sanjeev Nara","designation":"Assistant Professor","school":"School of Biosciences & Bio Engineering","id":"https://openalex.org/A5103118213","openalexId":"https://openalex.org/A5103118213","name":"Sanjeev Nara","institution":"Indian Institute of Technology Mandi","institutions":[{"id":"https://openalex.org/I200763008","display_name":"Justus-Liebig-Universität Gießen","country_code":"DE"},{"id":"https://openalex.org/I9579091","display_name":"Indian Institute of Technology Mandi","country_code":"IN"}],"topics":["Neuroscience and Music Perception","Neural dynamics and brain function","Multisensory perception and integration","Functional Brain Connectivity Studies","Visual perception and processing mechanisms"],"publications":47,"citationCount":184,"orcid":"https://orcid.org/0000-0002-2879-096X","matchScore":103,"matchedBy":"name_search"},{"selectedId":5,"selectedName":"Amit Jaiswal","designation":"Professor","school":"School of Biosciences & Bio Engineering","id":"https://openalex.org/A5083149720","openalexId":"https://openalex.org/A5083149720","name":"Amit Jaiswal","institution":"Indian Institute of Technology Mandi","institutions":[{"id":"https://openalex.org/I101407740","display_name":"Chandigarh University","country_code":"IN"},{"id":"https://openalex.org/I168635309","display_name":"University of Calgary","country_code":"CA"},{"id":"https://openalex.org/I4210103194","display_name":"Dr. D.Y. Patil Vidyapeeth, Pune","country_code":"IN"},{"id":"https://openalex.org/I4210141330","display_name":"Toyoda Gosei (Japan)","country_code":"JP"},{"id":"https://openalex.org/I9579091","display_name":"Indian Institute of Technology Mandi","country_code":"IN"}],"topics":["Gold and Silver Nanoparticles Synthesis and Applications","Helminth infection and control","Advanced biosensing and bioanalysis techniques","Vector-Borne Animal Diseases","Vector-borne infectious diseases"],"publications":218,"citationCount":4711,"orcid":"https://orcid.org/0000-0002-9748-0404","matchScore":103,"matchedBy":"name_search"},{"selectedId":6,"selectedName":"Amit Prasad","designation":"Professor","school":"School of Biosciences & Bio Engineering","id":"https://openalex.org/A5011365505","openalexId":"https://openalex.org/A5011365505","name":"Amit Prasad","institution":"Indian Institute of Technology Mandi","institutions":[{"id":"https://openalex.org/I9579091","display_name":"Indian Institute of Technology Mandi","country_code":"IN"}],"topics":["Parasitic infections in humans and animals","History of Science and Medicine","Parasites and Host Interactions","Parasitic Infections and Diagnostics","Parasite Biology and Host Interactions"],"publications":146,"citationCount":2746,"orcid":"https://orcid.org/0000-0002-4235-9201","matchScore":103,"matchedBy":"name_search"},{"selectedId":7,"selectedName":"Trayambak Basak","designation":"Associate Professor","school":"School of Biosciences & Bio Engineering","id":"https://openalex.org/A5059726366","openalexId":"https://openalex.org/A5059726366","name":"Trayambak Basak","institution":"Indian Institute of Technology Mandi","institutions":[{"id":"https://openalex.org/I4210128676","display_name":"Human Computer Interaction (Switzerland)","country_code":"CH"},{"id":"https://openalex.org/I9579091","display_name":"Indian Institute of Technology Mandi","country_code":"IN"}],"topics":["Advanced Proteomics Techniques and Applications","Folate and B Vitamins Research","Collagen: Extraction and Characterization","Connective tissue disorders research","Protease and Inhibitor Mechanisms"],"publications":82,"citationCount":1462,"orcid":"https://orcid.org/0000-0001-7683-3189","matchScore":103,"matchedBy":"name_search"},{"selectedId":8,"selectedName":"Prasad Kasturi","designation":"Associate Professor","school":"School of Biosciences & Bio Engineering","id":"https://openalex.org/A5032403510","openalexId":"https://openalex.org/A5032403510","name":"Prasad Kasturi","institution":"Indian Institute of Technology Mandi","institutions":[{"id":"https://openalex.org/I9579091","display_name":"Indian Institute of Technology Mandi","country_code":"IN"}],"topics":["Genetics, Aging, and Longevity in Model Organisms","CRISPR and Genetic Engineering","Endoplasmic Reticulum Stress and Disease","Heat shock proteins research","Mitochondrial Function and Pathology"],"publications":26,"citationCount":2853,"orcid":"https://orcid.org/0000-0002-3611-5489","matchScore":103,"matchedBy":"name_search"},{"selectedId":9,"selectedName":"Baskar Bakthavachalu","designation":"Associate Professor","school":"School of Biosciences & Bio Engineering","id":"https://openalex.org/A5052721686","openalexId":"https://openalex.org/A5052721686","name":"Baskar Bakthavachalu","institution":"Indian Institute of Technology Mandi","institutions":[{"id":"https://openalex.org/I9579091","display_name":"Indian Institute of Technology Mandi","country_code":"IN"}],"topics":["RNA Research and Splicing","Genetic Neurodegenerative Diseases","RNA modifications and cancer","RNA regulation and disease","RNA and protein synthesis mechanisms"],"publications":35,"citationCount":936,"orcid":"https://orcid.org/0000-0002-5114-3429","matchScore":103,"matchedBy":"name_search"},{"selectedId":10,"selectedName":"Sumit Murab","designation":"Associate Professor","school":"School of Biosciences & Bio Engineering","id":"https://openalex.org/A5023614019","openalexId":"https://openalex.org/A5023614019","name":"Sumit Murab","institution":"Indian Institute of Technology Mandi","institutions":[{"id":"https://openalex.org/I4210128676","display_name":"Human Computer Interaction (Switzerland)","country_code":"CH"},{"id":"https://openalex.org/I9579091","display_name":"Indian Institute of Technology Mandi","country_code":"IN"}],"topics":["Bone Tissue Engineering Materials","Osteoarthritis Treatment and Mechanisms","Silk-based biomaterials and applications","Dental Implant Techniques and Outcomes","Orthopaedic implants and arthroplasty"],"publications":37,"citationCount":1022,"orcid":"https://orcid.org/0000-0003-1212-1531","matchScore":103,"matchedBy":"name_search"},{"selectedId":11,"selectedName":"Kharerin Hungyo","designation":"Assistant Professor","school":"School of Biosciences & Bio Engineering","id":"https://openalex.org/A5092920060","openalexId":"https://openalex.org/A5092920060","name":"Kharerin Hungyo","institution":"Indian Institute of Technology Mandi","institutions":[{"id":"https://openalex.org/I9579091","display_name":"Indian Institute of Technology Mandi","country_code":"IN"}],"topics":["Genomics and Chromatin Dynamics","Chromosomal and Genetic Variations","Protein Structure and Dynamics","Epigenetics and DNA Methylation","RNA and protein synthesis mechanisms"],"publications":7,"citationCount":4,"orcid":null,"matchScore":103,"matchedBy":"name_search"},{"selectedId":14,"selectedName":"Satyajit Thakor","designation":"Professor","school":"School of Computing & Electrical Engineering","id":"https://openalex.org/A5052643871","openalexId":"https://openalex.org/A5052643871","name":"Satyajit Thakor","institution":"Indian Institute of Technology Mandi","institutions":[{"id":"https://openalex.org/I9579091","display_name":"Indian Institute of Technology Mandi","country_code":"IN"}],"topics":["Cooperative Communication and Network Coding","Wireless Communication Security Techniques","Advanced Wireless Communication Technologies","Error Correcting Code Techniques","Caching and Content Delivery"],"publications":49,"citationCount":202,"orcid":"https://orcid.org/0000-0001-9527-0975","matchScore":103,"matchedBy":"name_search"},{"selectedId":15,"selectedName":"Varun Dutt","designation":"Professor","school":"School of Computing & Electrical Engineering","id":"https://openalex.org/A5010689942","openalexId":"https://openalex.org/A5010689942","name":"Varun Dutt","institution":"Indian Institute of Technology Mandi","institutions":[{"id":"https://openalex.org/I9579091","display_name":"Indian Institute of Technology Mandi","country_code":"IN"}],"topics":["Landslides and related hazards","Information and Cyber Security","Decision-Making and Behavioral Economics","Network Security and Intrusion Detection","Complex Systems and Decision Making"],"publications":282,"citationCount":2745,"orcid":"https://orcid.org/0000-0002-2151-8314","matchScore":103,"matchedBy":"name_search"},{"selectedId":16,"selectedName":"Padmanabhan Rajan","designation":"Professor","school":"School of Computing & Electrical Engineering","id":"https://openalex.org/A5126490877","openalexId":"https://openalex.org/A5126490877","name":"Padmanabhan Rajan","institution":"Indian Institute of Technology Mandi","institutions":[{"id":"https://openalex.org/I9579091","display_name":"Indian Institute of Technology Mandi","country_code":"IN"}],"topics":["Speech and Audio Processing","Speech Recognition and Synthesis","Phonetics and Phonology Research","Network Traffic and Congestion Control","Emotion and Mood Recognition"],"publications":5,"citationCount":0,"orcid":null,"matchScore":103,"matchedBy":"name_search"},{"selectedId":17,"selectedName":"Satinder Sharma","designation":"Professor","school":"School of Computing & Electrical Engineering","id":"https://openalex.org/A5054822912","openalexId":"https://openalex.org/A5054822912","name":"Satinder K. Sharma","institution":"Indian Institute of Technology Mandi","institutions":[{"id":"https://openalex.org/I9579091","display_name":"Indian Institute of Technology Mandi","country_code":"IN"}],"topics":["Semiconductor materials and devices","Advancements in Photolithography Techniques","Integrated Circuits and Semiconductor Failure Analysis","Conducting polymers and applications","Advanced Memory and Neural Computing"],"publications":189,"citationCount":3061,"orcid":"https://orcid.org/0000-0001-9313-5550","matchScore":88,"matchedBy":"name_search"},{"selectedId":18,"selectedName":"Aditya Nigam","designation":"Associate Professor","school":"School of Computing & Electrical Engineering","id":"https://openalex.org/A5103245984","openalexId":"https://openalex.org/A5103245984","name":"Aditya Nigam","institution":"Indian Institute of Technology Mandi","institutions":[{"id":"https://openalex.org/I9579091","display_name":"Indian Institute of Technology Mandi","country_code":"IN"}],"topics":["Biometric Identification and Security","Face recognition and analysis","User Authentication and Security Systems","Advanced Neuroimaging Techniques and Applications","Political Economy and Marxism"],"publications":229,"citationCount":1927,"orcid":"https://orcid.org/0000-0003-4755-0619","matchScore":103,"matchedBy":"name_search"},{"selectedId":19,"selectedName":"Kunal Ghosh","designation":"Associate Professor","school":"School of Computing & Electrical Engineering","id":"https://openalex.org/A5104085697","openalexId":"https://openalex.org/A5104085697","name":"Kunal Ghosh","institution":"Indian Institute of Technology Mandi","institutions":[{"id":"https://openalex.org/I20238315","display_name":"Netaji Subhas Open University","country_code":"IN"},{"id":"https://openalex.org/I36090812","display_name":"Netaji Subhas University of Technology","country_code":"IN"},{"id":"https://openalex.org/I59270414","display_name":"Indian Institute of Science Bangalore","country_code":"IN"},{"id":"https://openalex.org/I9579091","display_name":"Indian Institute of Technology Mandi","country_code":"IN"}],"topics":["Clay minerals and soil interactions","Geochemistry and Geologic Mapping","Soil and Unsaturated Flow","Surfactants and Colloidal Systems","Adsorption, diffusion, and thermodynamic properties of materials"],"publications":42,"citationCount":3164,"orcid":null,"matchScore":103,"matchedBy":"name_search"},{"selectedId":20,"selectedName":"Hitesh Shrimali","designation":"Professor","school":"School of Computing & Electrical Engineering","id":"https://openalex.org/A5070274082","openalexId":"https://openalex.org/A5070274082","name":"Hitesh Shrimali","institution":"Indian Institute of Technology Mandi","institutions":[{"id":"https://openalex.org/I64295750","display_name":"Indian Institute of Technology Indore","country_code":"IN"},{"id":"https://openalex.org/I9579091","display_name":"Indian Institute of Technology Mandi","country_code":"IN"}],"topics":["Analog and Mixed-Signal Circuit Design","Low-power high-performance VLSI design","Electromagnetic Compatibility and Noise Suppression","Advancements in Semiconductor Devices and Circuit Design","Radio Frequency Integrated Circuit Design"],"publications":77,"citationCount":471,"orcid":"https://orcid.org/0000-0003-2776-1005","matchScore":103,"matchedBy":"name_search"},{"selectedId":21,"selectedName":"Shubhajit Roy Chowdhury","designation":"Professor","school":"School of Computing & Electrical Engineering","id":"https://openalex.org/A5056024296","openalexId":"https://openalex.org/A5056024296","name":"Shubhajit Roy Chowdhury","institution":"Indian Institute of Technology Mandi","institutions":[{"id":"https://openalex.org/I9579091","display_name":"Indian Institute of Technology Mandi","country_code":"IN"}],"topics":["Transcranial Magnetic Stimulation Studies","Optical Imaging and Spectroscopy Techniques","Non-Invasive Vital Sign Monitoring","EEG and Brain-Computer Interfaces","ECG Monitoring and Analysis"],"publications":151,"citationCount":1329,"orcid":"https://orcid.org/0000-0003-1878-6657","matchScore":103,"matchedBy":"name_search"},{"selectedId":22,"selectedName":"Tushar Jain","designation":"Professor","school":"School of Computing & Electrical Engineering","id":"https://openalex.org/A5010806251","openalexId":"https://openalex.org/A5010806251","name":"Tushar Jain","institution":"Indian Institute of Technology Mandi","institutions":[{"id":"https://openalex.org/I9579091","display_name":"Indian Institute of Technology Mandi","country_code":"IN"}],"topics":["Advanced Control Systems Optimization","Fault Detection and Control Systems","Control Systems and Identification","Building Energy and Comfort Optimization","Stability and Control of Uncertain Systems"],"publications":150,"citationCount":655,"orcid":"https://orcid.org/0000-0003-2300-1375","matchScore":103,"matchedBy":"name_search"},{"selectedId":23,"selectedName":"Siddhartha Sarma","designation":"Assistant Professor","school":"School of Computing & Electrical Engineering","id":"https://openalex.org/A5080430088","openalexId":"https://openalex.org/A5080430088","name":"Siddhartha Sarma","institution":"Indian Institute of Technology Mandi","institutions":[{"id":"https://openalex.org/I9579091","display_name":"Indian Institute of Technology Mandi","country_code":"IN"}],"topics":["Cooperative Communication and Network Coding","Wireless Communication Security Techniques","Energy Harvesting in Wireless Networks","Advanced MIMO Systems Optimization","Advanced Wireless Communication Technologies"],"publications":28,"citationCount":101,"orcid":"https://orcid.org/0000-0003-3008-7445","matchScore":103,"matchedBy":"name_search"},{"selectedId":24,"selectedName":"Rahul Shrestha","designation":"Associate Professor","school":"School of Computing & Electrical Engineering","id":"https://openalex.org/A5033933825","openalexId":"https://openalex.org/A5033933825","name":"Rahul Shrestha","institution":"Indian Institute of Technology Mandi","institutions":[{"id":"https://openalex.org/I9579091","display_name":"Indian Institute of Technology Mandi","country_code":"IN"}],"topics":["Advanced Wireless Communication Techniques","Error Correcting Code Techniques","Cognitive Radio Networks and Spectrum Sensing","Blind Source Separation Techniques","Distributed Sensor Networks and Detection Algorithms"],"publications":74,"citationCount":743,"orcid":"https://orcid.org/0000-0003-2224-0892","matchScore":103,"matchedBy":"name_search"},{"selectedId":25,"selectedName":"Himanshu Misra","designation":"Associate Professor","school":"School of Computing & Electrical Engineering","id":"https://openalex.org/A5005992007","openalexId":"https://openalex.org/A5005992007","name":"Himanshu Misra","institution":"Indian Institute of Technology Mandi","institutions":[{"id":"https://openalex.org/I9579091","display_name":"Indian Institute of Technology Mandi","country_code":"IN"}],"topics":["Electric Motor Design and Analysis","Multilevel Inverters and Converters","Sensorless Control of Electric Motors","Wind Turbine Control Systems","Microgrid Control and Optimization"],"publications":40,"citationCount":226,"orcid":"https://orcid.org/0000-0002-3494-1883","matchScore":103,"matchedBy":"name_search"},{"selectedId":26,"selectedName":"Srinivasu Bodapati","designation":"Associate Professor","school":"School of Computing & Electrical Engineering","id":"https://openalex.org/A5010439079","openalexId":"https://openalex.org/A5010439079","name":"B. Srinivasu","institution":"Indian Institute of Technology Mandi","institutions":[{"id":"https://openalex.org/I9579091","display_name":"Indian Institute of Technology Mandi","country_code":"IN"}],"topics":["Advanced Memory and Neural Computing","Low-power high-performance VLSI design","Ferroelectric and Negative Capacitance Devices","Physical Unclonable Functions (PUFs) and Hardware Security","Neuroscience and Neural Engineering"],"publications":27,"citationCount":202,"orcid":"https://orcid.org/0000-0003-0974-8245","matchScore":73,"matchedBy":"name_search"},{"selectedId":27,"selectedName":"Sreelakshmi Manjunath","designation":"Assistant Professor","school":"School of Computing & Electrical Engineering","id":"https://openalex.org/A5077687071","openalexId":"https://openalex.org/A5077687071","name":"Sreelakshmi Manjunath","institution":"Indian Institute of Technology Mandi","institutions":[{"id":"https://openalex.org/I53465836","display_name":"Bangalore University","country_code":"IN"},{"id":"https://openalex.org/I64295750","display_name":"Indian Institute of Technology Indore","country_code":"IN"},{"id":"https://openalex.org/I9579091","display_name":"Indian Institute of Technology Mandi","country_code":"IN"}],"topics":["Network Traffic and Congestion Control","Traffic control and management","Advanced Queuing Theory Analysis","Mathematical and Theoretical Epidemiology and Ecology Models","Software-Defined Networks and 5G"],"publications":36,"citationCount":115,"orcid":"https://orcid.org/0000-0001-6835-7813","matchScore":103,"matchedBy":"name_search"},{"selectedId":28,"selectedName":"Pratim Kundu","designation":"Associate Professor","school":"School of Computing & Electrical Engineering","id":"https://openalex.org/A5101447394","openalexId":"https://openalex.org/A5101447394","name":"Pratim Kundu","institution":"Indian Institute of Technology Mandi","institutions":[{"id":"https://openalex.org/I9579091","display_name":"Indian Institute of Technology Mandi","country_code":"IN"}],"topics":["Power System Optimization and Stability","Power Systems Fault Detection","Microgrid Control and Optimization","Islanding Detection in Power Systems","HVDC Systems and Fault Protection"],"publications":61,"citationCount":535,"orcid":"https://orcid.org/0000-0002-9297-6777","matchScore":103,"matchedBy":"name_search"},{"selectedId":29,"selectedName":"Jinesh Machchhar","designation":"Assistant Professor","school":"School of Computing & Electrical Engineering","id":"https://openalex.org/A5019387549","openalexId":"https://openalex.org/A5019387549","name":"Jinesh Machchhar","institution":"Indian Institute of Technology Mandi","institutions":[{"id":"https://openalex.org/I9579091","display_name":"Indian Institute of Technology Mandi","country_code":"IN"}],"topics":["Advanced Numerical Analysis Techniques","Computer Graphics and Visualization Techniques","Computational Geometry and Mesh Generation","3D Shape Modeling and Analysis","Manufacturing Process and Optimization"],"publications":19,"citationCount":145,"orcid":null,"matchScore":103,"matchedBy":"name_search"},{"selectedId":30,"selectedName":"Varunkumar Jayapaul","designation":"Assistant Professor","school":"School of Computing & Electrical Engineering","id":"https://openalex.org/A5021899404","openalexId":"https://openalex.org/A5021899404","name":"Varunkumar Jayapaul","institution":"Indian Institute of Technology Mandi","institutions":[{"id":"https://openalex.org/I9579091","display_name":"Indian Institute of Technology Mandi","country_code":"IN"}],"topics":["Advanced Graph Theory Research","Complexity and Algorithms in Graphs","Optimization and Search Problems","Parallel Computing and Optimization Techniques","Limits and Structures in Graph Theory"],"publications":15,"citationCount":31,"orcid":"https://orcid.org/0000-0003-4027-4172","matchScore":103,"matchedBy":"name_search"},{"selectedId":31,"selectedName":"Samar Agnihotri","designation":"Associate Professor","school":"School of Computing & Electrical Engineering","id":"https://openalex.org/A5055723059","openalexId":"https://openalex.org/A5055723059","name":"Samar Agnihotri","institution":"Indian Institute of Technology Mandi","institutions":[{"id":"https://openalex.org/I64295750","display_name":"Indian Institute of Technology Indore","country_code":"IN"},{"id":"https://openalex.org/I9579091","display_name":"Indian Institute of Technology Mandi","country_code":"IN"}],"topics":["Cooperative Communication and Network Coding","Wireless Communication Security Techniques","Advanced MIMO Systems Optimization","Advanced Wireless Network Optimization","Full-Duplex Wireless Communications"],"publications":79,"citationCount":502,"orcid":"https://orcid.org/0000-0003-3038-2479","matchScore":103,"matchedBy":"name_search"},{"selectedId":32,"selectedName":"Subrata Ghosh","designation":"Professor","school":"School of Chemical Sciences","id":"https://openalex.org/A5062596336","openalexId":"https://openalex.org/A5062596336","name":"Subrata Ghosh","institution":"Indian Institute of Technology Mandi","institutions":[{"id":"https://openalex.org/I27837315","display_name":"University of Michigan","country_code":"US"},{"id":"https://openalex.org/I4210124966","display_name":"Innovation Cluster (Canada)","country_code":"CA"},{"id":"https://openalex.org/I4210152023","display_name":"Universidad Politécnica de El Salvador","country_code":"SV"},{"id":"https://openalex.org/I93860229","display_name":"Politecnico di Milano","country_code":"IT"},{"id":"https://openalex.org/I9579091","display_name":"Indian Institute of Technology Mandi","country_code":"IN"}],"topics":["Crystallization and Solubility Studies","X-ray Diffraction in Crystallography","Advancements in Photolithography Techniques","Organic Light-Emitting Diodes Research","Luminescence and Fluorescent Materials"],"publications":217,"citationCount":2107,"orcid":"https://orcid.org/0000-0002-8030-4519","matchScore":103,"matchedBy":"name_search"},{"selectedId":33,"selectedName":"Venkata Krishnan","designation":"Professor","school":"School of Chemical Sciences","id":"https://openalex.org/A5079283559","openalexId":"https://openalex.org/A5079283559","name":"Venkata Krishnan","institution":"Indian Institute of Technology Mandi","institutions":[{"id":"https://openalex.org/I4210132400","display_name":"Advanced Energy Materials (United States)","country_code":"US"},{"id":"https://openalex.org/I9579091","display_name":"Indian Institute of Technology Mandi","country_code":"IN"}],"topics":["Advanced Photocatalysis Techniques","Copper-based nanomaterials and applications","Nanomaterials for catalytic reactions","Parallel Computing and Optimization Techniques","Gas Sensing Nanomaterials and Sensors"],"publications":289,"citationCount":14109,"orcid":"https://orcid.org/0000-0002-4453-0914","matchScore":103,"matchedBy":"name_search"},{"selectedId":34,"selectedName":"Pradeep Parameswaran","designation":"Professor","school":"School of Chemical Sciences","id":"https://openalex.org/A5001132094","openalexId":"https://openalex.org/A5001132094","name":"Pradeep Chullikkattil Parameswaran","institution":"Indian Institute of Technology Mandi","institutions":[{"id":"https://openalex.org/I9579091","display_name":"Indian Institute of Technology Mandi","country_code":"IN"}],"topics":["Polyoxometalates: Synthesis and Applications","Advanced Nanomaterials in Catalysis","Pigment Synthesis and Properties"],"publications":1,"citationCount":0,"orcid":null,"matchScore":88,"matchedBy":"name_search"},{"selectedId":35,"selectedName":"Prem Felix Siril","designation":"Professor","school":"School of Chemical Sciences","id":"https://openalex.org/A5056153595","openalexId":"https://openalex.org/A5056153595","name":"Prem Felix Siril","institution":"Indian Institute of Technology Mandi","institutions":[{"id":"https://openalex.org/I9579091","display_name":"Indian Institute of Technology Mandi","country_code":"IN"}],"topics":["Advanced Photocatalysis Techniques","Covalent Organic Framework Applications","Conducting polymers and applications","Metal-Organic Frameworks: Synthesis and Applications","Nanomaterials for catalytic reactions"],"publications":114,"citationCount":3209,"orcid":"https://orcid.org/0000-0002-8818-7310","matchScore":103,"matchedBy":"name_search"},{"selectedId":36,"selectedName":"Chayan K. Nandi","designation":"Professor","school":"School of Chemical Sciences","id":"https://openalex.org/A5078684292","openalexId":"https://openalex.org/A5078684292","name":"Chayan Kanti Nandi","institution":"Indian Institute of Technology Mandi","institutions":[{"id":"https://openalex.org/I157850169","display_name":"Indian Health Service","country_code":"US"},{"id":"https://openalex.org/I4210106463","display_name":"System Science Applications (United States)","country_code":"US"},{"id":"https://openalex.org/I64295750","display_name":"Indian Institute of Technology Indore","country_code":"IN"},{"id":"https://openalex.org/I9579091","display_name":"Indian Institute of Technology Mandi","country_code":"IN"}],"topics":["Carbon and Quantum Dots Applications","Nanocluster Synthesis and Applications","Advanced biosensing and bioanalysis techniques","Quantum Dots Synthesis And Properties","Advanced Fluorescence Microscopy Techniques"],"publications":146,"citationCount":2926,"orcid":"https://orcid.org/0000-0002-4584-0738","matchScore":78,"matchedBy":"name_search"},{"selectedId":37,"selectedName":"Aniruddha Chakraborty","designation":"Professor","school":"School of Chemical Sciences","id":"https://openalex.org/A5006076143","openalexId":"https://openalex.org/A5006076143","name":"Aniruddha Chakraborty","institution":"Indian Institute of Technology Mandi","institutions":[{"id":"https://openalex.org/I184840846","display_name":"Virginia Commonwealth University","country_code":"US"},{"id":"https://openalex.org/I9579091","display_name":"Indian Institute of Technology Mandi","country_code":"IN"}],"topics":["Spectroscopy and Quantum Chemical Studies","Molecular Junctions and Nanostructures","Quantum chaos and dynamical systems","Advanced Thermodynamics and Statistical Mechanics","Quantum Mechanics and Non-Hermitian Physics"],"publications":139,"citationCount":557,"orcid":"https://orcid.org/0000-0002-6451-206X","matchScore":103,"matchedBy":"name_search"},{"selectedId":38,"selectedName":"Aditi Halder","designation":"Professor","school":"School of Chemical Sciences","id":"https://openalex.org/A5078586020","openalexId":"https://openalex.org/A5078586020","name":"Aditi Halder","institution":"Indian Institute of Technology Mandi","institutions":[{"id":"https://openalex.org/I9579091","display_name":"Indian Institute of Technology Mandi","country_code":"IN"}],"topics":["Electrocatalysts for Energy Conversion","Advanced Photocatalysis Techniques","Advanced battery technologies research","Fuel Cells and Related Materials","Supercapacitor Materials and Fabrication"],"publications":130,"citationCount":3511,"orcid":"https://orcid.org/0000-0003-0399-9705","matchScore":103,"matchedBy":"name_search"},{"selectedId":39,"selectedName":"Bhaskar Mondal","designation":"Associate Professor","school":"School of Chemical Sciences","id":"https://openalex.org/A5068735630","openalexId":"https://openalex.org/A5068735630","name":"Bhaskar Mondal","institution":"Indian Institute of Technology Mandi","institutions":[{"id":"https://openalex.org/I9579091","display_name":"Indian Institute of Technology Mandi","country_code":"IN"}],"topics":["Crystallization and Solubility Studies","X-ray Diffraction in Crystallography","Advanced Chemical Physics Studies","Catalytic C–H Functionalization Methods","Asymmetric Hydrogenation and Catalysis"],"publications":113,"citationCount":2011,"orcid":"https://orcid.org/0000-0001-9026-5974","matchScore":103,"matchedBy":"name_search"},{"selectedId":40,"selectedName":"Bindu Radhamany","designation":"Professor","school":"School of Physical Sciences","id":"https://openalex.org/A5087864371","openalexId":"https://openalex.org/A5087864371","name":"Bindu Radhamany","institution":"Indian Institute of Technology Mandi","institutions":[{"id":"https://openalex.org/I9579091","display_name":"Indian Institute of Technology Mandi","country_code":"IN"}],"topics":["High-pressure geophysics and materials","Magnetic and transport properties of perovskites and related materials","Advanced Condensed Matter Physics"],"publications":1,"citationCount":6,"orcid":null,"matchScore":103,"matchedBy":"name_search"},{"selectedId":41,"selectedName":"Hari Varma","designation":"Professor","school":"School of Physical Sciences","id":"https://openalex.org/A5035109143","openalexId":"https://openalex.org/A5035109143","name":"Hari R. Varma","institution":"Indian Institute of Technology Mandi","institutions":[{"id":"https://openalex.org/I9579091","display_name":"Indian Institute of Technology Mandi","country_code":"IN"}],"topics":["Atomic and Molecular Physics","Advanced Chemical Physics Studies","Fullerene Chemistry and Applications","Laser-Matter Interactions and Applications","Spectroscopy and Quantum Chemical Studies"],"publications":60,"citationCount":424,"orcid":"https://orcid.org/0000-0001-9072-0041","matchScore":88,"matchedBy":"name_search"},{"selectedId":42,"selectedName":"Suman Kalyan Pal","designation":"Professor","school":"School of Physical Sciences","id":"https://openalex.org/A5090079709","openalexId":"https://openalex.org/A5090079709","name":"Suman Kalyan Pal","institution":"Indian Institute of Technology Mandi","institutions":[{"id":"https://openalex.org/I9579091","display_name":"Indian Institute of Technology Mandi","country_code":"IN"}],"topics":["Perovskite Materials and Applications","2D Materials and Applications","Multicomponent Synthesis of Heterocycles","Quantum Dots Synthesis And Properties","Synthesis and biological activity"],"publications":143,"citationCount":2975,"orcid":"https://orcid.org/0000-0003-2498-6217","matchScore":103,"matchedBy":"name_search"},{"selectedId":43,"selectedName":"Prasanth P. Jose","designation":"Associate Professor","school":"School of Physical Sciences","id":"https://openalex.org/A5073866498","openalexId":"https://openalex.org/A5073866498","name":"Prasanth P. Jose","institution":"Indian Institute of Technology Mandi","institutions":[{"id":"https://openalex.org/I9579091","display_name":"Indian Institute of Technology Mandi","country_code":"IN"}],"topics":["Material Dynamics and Properties","Theoretical and Computational Physics","Liquid Crystal Research Advancements","Rheology and Fluid Dynamics Studies","Phase Equilibria and Thermodynamics"],"publications":30,"citationCount":163,"orcid":"https://orcid.org/0000-0001-5475-2433","matchScore":103,"matchedBy":"name_search"},{"selectedId":44,"selectedName":"Kaustav Mukherjee","designation":"Professor","school":"School of Physical Sciences","id":"https://openalex.org/A5065188156","openalexId":"https://openalex.org/A5065188156","name":"K. Mukherjee","institution":"Indian Institute of Technology Mandi","institutions":[{"id":"https://openalex.org/I9579091","display_name":"Indian Institute of Technology Mandi","country_code":"IN"}],"topics":["Magnetic and transport properties of perovskites and related materials","Advanced Condensed Matter Physics","Rare-earth and actinide compounds","Multiferroics and related materials","Iron-based superconductors research"],"publications":127,"citationCount":1109,"orcid":"https://orcid.org/0000-0002-7965-4503","matchScore":73,"matchedBy":"name_search"},{"selectedId":46,"selectedName":"Nitu Kumari","designation":"Professor","school":"School of Mathematical & Statistical Sciences","id":"https://openalex.org/A5019051974","openalexId":"https://openalex.org/A5019051974","name":"Nitu Kumari","institution":"Indian Institute of Technology Mandi","institutions":[{"id":"https://openalex.org/I83737708","display_name":"REVA University","country_code":"IN"},{"id":"https://openalex.org/I9579091","display_name":"Indian Institute of Technology Mandi","country_code":"IN"}],"topics":["Mathematical and Theoretical Epidemiology and Ecology Models","Evolution and Genetic Dynamics","COVID-19 epidemiological studies","Nonlinear Dynamics and Pattern Formation","Evolutionary Game Theory and Cooperation"],"publications":64,"citationCount":710,"orcid":"https://orcid.org/0000-0001-5716-8179","matchScore":103,"matchedBy":"name_search"},{"selectedId":47,"selectedName":"Rajneesh Sharma","designation":"Associate Professor","school":"School of Civil & Environmental Engineering","id":"https://openalex.org/A5056044853","openalexId":"https://openalex.org/A5056044853","name":"Rajneesh Sharma","institution":"Indian Institute of Technology Mandi","institutions":[{"id":"https://openalex.org/I9579091","display_name":"Indian Institute of Technology Mandi","country_code":"IN"}],"topics":["Composite Material Mechanics","Rock Mechanics and Modeling","Concrete and Cement Materials Research","Advanced ceramic materials synthesis","Mechanical Behavior of Composites"],"publications":36,"citationCount":1097,"orcid":"https://orcid.org/0000-0002-7918-322X","matchScore":103,"matchedBy":"name_search"},{"selectedId":48,"selectedName":"Dericks Praise Shukla","designation":"Professor","school":"School of Civil & Environmental Engineering","id":"https://openalex.org/A5089662315","openalexId":"https://openalex.org/A5089662315","name":"Dericks Praise Shukla","institution":"Indian Institute of Technology Mandi","institutions":[{"id":"https://openalex.org/I151104398","display_name":"Pokhara University","country_code":"NP"},{"id":"https://openalex.org/I9579091","display_name":"Indian Institute of Technology Mandi","country_code":"IN"}],"topics":["Landslides and related hazards","Cryospheric studies and observations","Flood Risk Assessment and Management","Fire effects on ecosystems","Groundwater and Watershed Analysis"],"publications":113,"citationCount":2106,"orcid":"https://orcid.org/0000-0001-6546-9203","matchScore":103,"matchedBy":"name_search"},{"selectedId":49,"selectedName":"Rahul Vaish","designation":"Professor","school":"School of Mechanical & Materials Engineering","id":"https://openalex.org/A5002274636","openalexId":"https://openalex.org/A5002274636","name":"Rahul Vaish","institution":"Indian Institute of Technology Mandi","institutions":[{"id":"https://openalex.org/I9579091","display_name":"Indian Institute of Technology Mandi","country_code":"IN"}],"topics":["Ferroelectric and Piezoelectric Materials","Advanced Photocatalysis Techniques","Innovative Energy Harvesting Technologies","Advanced Sensor and Energy Harvesting Materials","Dielectric materials and actuators"],"publications":389,"citationCount":10706,"orcid":"https://orcid.org/0000-0001-7510-7302","matchScore":103,"matchedBy":"name_search"}],"unmatched":[{"id":4,"name":"Tulika Srivastava","designation":"Professor","school":"School of Biosciences & Bio Engineering","openalex_id":null,"reason":"Best candidate was Tulika Srivastava at SRM Institute of Science and Technology (match score 58); below the confidence threshold."},{"id":12,"name":"Ekta Makhija","designation":"Assistant Professor","school":"School of Biosciences & Bio Engineering","openalex_id":null,"reason":"Best candidate was Ekta Makhija at Singapore-MIT Alliance for Research and Technology (match score 50); below the confidence threshold."},{"id":13,"name":"Lokeshkumar Pisaram Ramteke","designation":"Assistant Professor","school":"School of Biosciences & Bio Engineering","openalex_id":null,"reason":"No OpenAlex author candidates returned."},{"id":45,"name":"Rajendra Kr. Ray","designation":"Professor","school":"School of Mathematical & Statistical Sciences","openalex_id":null,"reason":"No OpenAlex author candidates returned."},{"id":50,"name":"Rajeev Kumar","designation":"Professor","school":"School of Mechanical & Materials Engineering","openalex_id":null,"reason":"Best candidate was Rajeev Kumar at Babasaheb Bhimrao Ambedkar Bihar University (match score 58); below the confidence threshold."}],"timestamp":"2026-08-12T08:58:06.008Z"};
+
+/* ============================================================
+   RESEARCHER PROFILE DATA (contact + photo)
+   Emails and portraits were collected from the official IIT Mandi
+   faculty directory (iitmandi.ac.in/allfaculty) and the individual
+   school websites (scee/sbb/scs/sps/smss/scene/smme.iitmandi.ac.in).
+   Portraits are stored locally in ./researcher-photos/ so the app
+   keeps working offline; `photoSource` records where each came from.
+   ============================================================ */
+const RESEARCHER_PROFILES = {"1":{"email":"ssrikanth@iitmandi.ac.in","altEmails":[],"photo":"researcher-photos/01.jpg","dirDesignation":"Assistant Professor","photoSource":"https://scee.iitmandi.ac.in/assets/img/faculty/Srikanth.jpg"},"2":{"email":"shyam@iitmandi.ac.in","altEmails":[],"photo":"researcher-photos/02.jpg","dirDesignation":"Professor","photoSource":"https://sbb.iitmandi.ac.in/images/Shyam.jpg"},"3":{"email":"sanjeevnara@iitmandi.ac.in","altEmails":[],"photo":"researcher-photos/03.jpg","dirDesignation":"Assistant Professor","photoSource":"https://sbb.iitmandi.ac.in/images/Sanjeev_Nara.jpeg"},"4":{"email":"tulika@iitmandi.ac.in","altEmails":["chairsbb@iitmandi.ac.in"],"photo":"researcher-photos/04.jpg","dirDesignation":"Professor","photoSource":"https://sbb.iitmandi.ac.in/images/Tulika.jpg"},"5":{"email":"j.amit@iitmandi.ac.in","altEmails":[],"photo":"researcher-photos/05.jpg","dirDesignation":"Professor","photoSource":"https://sbb.iitmandi.ac.in/images/Amit-J.jpg"},"6":{"email":"amitprasad@iitmandi.ac.in","altEmails":[],"photo":"researcher-photos/06.jpg","dirDesignation":"Professor","photoSource":"https://sbb.iitmandi.ac.in/images/Amit-P.jpg"},"7":{"email":"trayambak@iitmandi.ac.in","altEmails":[],"photo":"researcher-photos/07.jpg","dirDesignation":"Associate Professor","photoSource":"https://sbb.iitmandi.ac.in/images/Trayambak.jpg"},"8":{"email":"prasadkasturi@iitmandi.ac.in","altEmails":[],"photo":"researcher-photos/08.jpg","dirDesignation":"Associate Professor","photoSource":"https://sbb.iitmandi.ac.in/images/Prasad-1.jpg"},"9":{"email":"baskar@iitmandi.ac.in","altEmails":[],"photo":"researcher-photos/09.jpg","dirDesignation":"Associate Professor","photoSource":"https://sbb.iitmandi.ac.in/images/baskar.png"},"10":{"email":"sumitmurab@iitmandi.ac.in","altEmails":[],"photo":"researcher-photos/10.jpg","dirDesignation":"Associate professor","photoSource":"https://sbb.iitmandi.ac.in/images/sumit.png"},"11":{"email":"kharerin@iitmandi.ac.in","altEmails":[],"photo":"researcher-photos/11.jpg","dirDesignation":"Assistant Professor","photoSource":"https://sbb.iitmandi.ac.in/images/Kharerin.jpg"},"12":{"email":"ekta@iitmandi.ac.in","altEmails":[],"photo":"researcher-photos/12.jpg","dirDesignation":"Assistant Professor","photoSource":"https://sbb.iitmandi.ac.in/images/Ekta_pic2.jpg"},"13":{"email":"lokesh@iitmandi.ac.in","altEmails":[],"photo":"researcher-photos/13.jpg","dirDesignation":"Assistant Professor","photoSource":"https://sbb.iitmandi.ac.in/images/Lokesh.jpg"},"14":{"email":"satyajit@iitmandi.ac.in","altEmails":["chairscee@iitmandi.ac.in"],"photo":"researcher-photos/14.jpg","dirDesignation":"Professor(Chairperson)","photoSource":"https://scee.iitmandi.ac.in/assets/img/faculty/Satyajit.jpg"},"15":{"email":"varun@iitmandi.ac.in","altEmails":[],"photo":"researcher-photos/15.jpg","dirDesignation":"Professor","photoSource":"https://scee.iitmandi.ac.in/assets/img/faculty/photo1665115017 - ACS Lab.jpeg"},"16":{"email":"padman@iitmandi.ac.in","altEmails":[],"photo":"researcher-photos/16.jpg","dirDesignation":"Professor","photoSource":"https://scee.iitmandi.ac.in/assets/img/faculty/Neeraj.jpeg"},"17":{"email":"satinder@iitmandi.ac.in","altEmails":[],"photo":"researcher-photos/17.jpg","dirDesignation":"Professor","photoSource":"https://scee.iitmandi.ac.in/assets/img/faculty/satinder.jpg"},"18":{"email":"aditya@iitmandi.ac.in","altEmails":[],"photo":"researcher-photos/18.jpg","dirDesignation":"Associate Professor","photoSource":"https://scee.iitmandi.ac.in/assets/img/faculty/adarsh.jpg"},"19":{"email":"kunal@iitmandi.ac.in","altEmails":[],"photo":"researcher-photos/19.jpg","dirDesignation":"Associate Professor","photoSource":"https://scee.iitmandi.ac.in/assets/img/faculty/IMG-20221021-WA0005 - Kunal Ghosh.jpg"},"20":{"email":"hitesh@iitmandi.ac.in","altEmails":[],"photo":"researcher-photos/20.jpg","dirDesignation":"Professor","photoSource":"https://scee.iitmandi.ac.in/assets/img/faculty/hitesh.jpg"},"21":{"email":"src@iitmandi.ac.in","altEmails":[],"photo":"researcher-photos/21.jpg","dirDesignation":"Professor","photoSource":"https://scee.iitmandi.ac.in/assets/img/faculty/src.JPG"},"22":{"email":"tushar@iitmandi.ac.in","altEmails":[],"photo":"researcher-photos/22.jpg","dirDesignation":"Professor","photoSource":"https://scee.iitmandi.ac.in/assets/img/faculty/tushar.jpg"},"23":{"email":"siddhartha@iitmandi.ac.in","altEmails":[],"photo":"researcher-photos/23.jpg","dirDesignation":"Assistant Professor","photoSource":"https://scee.iitmandi.ac.in/assets/img/faculty/siddharthpanwar.jpg"},"24":{"email":"rahul_shrestha@iitmandi.ac.in","altEmails":[],"photo":"researcher-photos/24.jpg","dirDesignation":"Associate Professor","photoSource":"https://scee.iitmandi.ac.in/assets/img/faculty/rahulshrestha.jpg"},"25":{"email":"himanshumisra@iitmandi.ac.in","altEmails":[],"photo":"researcher-photos/25.jpg","dirDesignation":"Associate Professor","photoSource":"https://scee.iitmandi.ac.in/assets/img/faculty/himanshu.jpg"},"26":{"email":"srinivasu@iitmandi.ac.in","altEmails":[],"photo":"researcher-photos/26.jpg","dirDesignation":"Associate Professor","photoSource":"https://scee.iitmandi.ac.in/assets/img/faculty/srinivasu.jpg"},"27":{"email":"sreelakshmi@iitmandi.ac.in","altEmails":[],"photo":"researcher-photos/27.jpg","dirDesignation":"Assistant Professor","photoSource":"https://scee.iitmandi.ac.in/assets/img/faculty/sreelaxmi.jpg"},"28":{"email":"pratim@iitmandi.ac.in","altEmails":[],"photo":"researcher-photos/28.jpg","dirDesignation":"Associate Professor","photoSource":"https://scee.iitmandi.ac.in/assets/img/faculty/pratim.jpg"},"29":{"email":"jinesh@iitmandi.ac.in","altEmails":[],"photo":"researcher-photos/29.jpg","dirDesignation":"Assistant Professor","photoSource":"https://scee.iitmandi.ac.in/assets/img/faculty/indu-pic.jpg"},"30":{"email":"varunkumar@iitmandi.ac.in","altEmails":[],"photo":"researcher-photos/30.jpg","dirDesignation":"Assistant Professor","photoSource":"https://scee.iitmandi.ac.in/assets/img/faculty/passport photo new - Varunkumar Jayapaul.JPG"},"31":{"email":"samar@iitmandi.ac.in","altEmails":[],"photo":"researcher-photos/31.jpg","dirDesignation":"Associate Professor","photoSource":"https://scee.iitmandi.ac.in/assets/img/faculty/samar.jpg"},"32":{"email":"subrata@iitmandi.ac.in","altEmails":["chairscs@iitmandi.ac.in"],"photo":"researcher-photos/32.jpg","dirDesignation":"Professor","photoSource":"https://scs.iitmandi.ac.in/faculty-images/subrata.jpg"},"33":{"email":"vkn@iitmandi.ac.in","altEmails":[],"photo":"researcher-photos/33.jpg","dirDesignation":"Professor","photoSource":"https://scs.iitmandi.ac.in/faculty-images/venkata.jpg"},"34":{"email":"pradeep@iitmandi.ac.in","altEmails":[],"photo":"researcher-photos/34.jpg","dirDesignation":"Professor","photoSource":"https://scs.iitmandi.ac.in/faculty-images/pradeep.jpg"},"35":{"email":"prem@iitmandi.ac.in","altEmails":[],"photo":"researcher-photos/35.jpg","dirDesignation":"Professor","photoSource":"https://scs.iitmandi.ac.in/faculty-images/prem.jpg"},"36":{"email":"chayan@iitmandi.ac.in","altEmails":[],"photo":"researcher-photos/36.jpg","dirDesignation":"Professor","photoSource":"https://scs.iitmandi.ac.in/faculty-images/chayan.jpg"},"37":{"email":"achakraborty@iitmandi.ac.in","altEmails":[],"photo":"researcher-photos/37.jpg","dirDesignation":"Professor","photoSource":"https://scs.iitmandi.ac.in/faculty-images/aniruddha.jpg"},"38":{"email":"aditi@iitmandi.ac.in","altEmails":[],"photo":"researcher-photos/38.jpg","dirDesignation":"Professor","photoSource":"https://scs.iitmandi.ac.in/faculty-images/aditi.jpg"},"39":{"email":"bhaskarmondal@iitmandi.ac.in","altEmails":[],"photo":"researcher-photos/39.jpg","dirDesignation":"Associate Professor","photoSource":"https://scs.iitmandi.ac.in/faculty-images/bhaskar.jpg"},"40":{"email":"bindu@iitmandi.ac.in","altEmails":["chairsps@iitmandi.ac.in"],"photo":"researcher-photos/40.jpg","dirDesignation":"Professor","photoSource":"https://sps.iitmandi.ac.in/images/faculty/Bindu.jpg"},"41":{"email":"hari@iitmandi.ac.in","altEmails":[],"photo":"researcher-photos/41.jpg","dirDesignation":"Professor","photoSource":"https://sps.iitmandi.ac.in/images/faculty/Hari.jpg"},"42":{"email":"suman@iitmandi.ac.in","altEmails":[],"photo":"researcher-photos/42.jpg","dirDesignation":"Professor","photoSource":"https://sps.iitmandi.ac.in/images/faculty/skp.jpg"},"43":{"email":"prasanth@iitmandi.ac.in","altEmails":[],"photo":"researcher-photos/43.jpg","dirDesignation":"Associate Professor","photoSource":"https://sps.iitmandi.ac.in/images/faculty/ppj.jpg"},"44":{"email":"kaustav@iitmandi.ac.in","altEmails":[],"photo":"researcher-photos/44.jpg","dirDesignation":"Professor","photoSource":"https://sps.iitmandi.ac.in/images/faculty/Kaustav.jpg"},"45":{"email":"rajendra@iitmandi.ac.in","altEmails":["chairsmss@iitmandi.ac.in"],"photo":"researcher-photos/45.jpg","dirDesignation":"Professor","photoSource":"https://smss.iitmandi.ac.in/images/RKR.jpg"},"46":{"email":"nitu@iitmandi.ac.in","altEmails":[],"photo":"researcher-photos/46.jpg","dirDesignation":"Professor","photoSource":"https://smss.iitmandi.ac.in/images/Nitu.jpg"},"47":{"email":"rsharma@iitmandi.ac.in","altEmails":["chair_scene@iitmandi.ac.in"],"photo":"researcher-photos/47.jpg","dirDesignation":"Associate Professor(Chairperson)","photoSource":"https://scene.iitmandi.ac.in/uploads/our_team/1681365829345707.jpeg"},"48":{"email":"dericks@iitmandi.ac.in","altEmails":[],"photo":"researcher-photos/48.jpg","dirDesignation":"Professor","photoSource":"https://scene.iitmandi.ac.in/uploads/our_team/1681303462262671.jpg"},"49":{"email":"rahul@iitmandi.ac.in","altEmails":[],"photo":"researcher-photos/49.jpg","dirDesignation":"Professor","photoSource":"https://smme.iitmandi.ac.in/api/media/file/rahul.jpg"},"50":{"email":"rajeev@iitmandi.ac.in","altEmails":[],"photo":"researcher-photos/50.jpg","dirDesignation":"Professor","photoSource":"https://smme.iitmandi.ac.in/api/media/file/rajeev.jpg"}};
+
+/* ============================================================
+   CONSTANTS
+   ============================================================ */
+const CACHE_KEY = "iit_mandi_research_data_v1";
+const SHORTLIST_KEY = "iit_mandi_shortlist_v1";
+const CACHE_TTL_DAYS = 30;
+const OPENALEX_AUTHOR_ENDPOINT = 'https://api.openalex.org/authors';
+const OPENALEX_MAILTO = '';
+const OPENALEX_REQUEST_DELAY_MS = 1200;
+const IIT_MANDI_TERMS = ['indian institute of technology mandi', 'iit mandi', 'i.i.t. mandi'];
+const CLUSTER_KEYWORDS = [
+  { id: 'ai_ml', label: 'AI & MACHINE LEARNING', color: '#173B63', terms: ['machine learning','deep learning','neural network','artificial intelligence','computer vision','natural language','reinforcement learning','pattern recognition','data mining'] },
+  { id: 'biomed', label: 'BIOMEDICAL & BIOSCIENCES', color: '#00A6A6', terms: ['biomedical','cancer','cell','protein','genom','biolog','disease','clinical','pharmac','molecular','biosensor','tissue','immun'] },
+  { id: 'materials', label: 'MATERIALS & NANOTECH', color: '#8A5A2B', terms: ['nanomaterial','nanoparticle','material','polymer','crystal','composite','ceramic','coating','graphene','catalys','nanostructure'] },
+  { id: 'signal', label: 'SIGNAL & COMMUNICATION', color: '#6B7280', terms: ['signal processing','communication','wireless','antenna','speech','acoustic','audio','coding theory','information theory'] },
+  { id: 'photonics', label: 'PHOTONICS & OPTICS', color: '#B7791F', terms: ['laser','photon','optic','fiber','spectroscop','plasmon'] },
+  { id: 'chem', label: 'CHEMICAL SCIENCES', color: '#5B21B6', terms: ['chemistry','chemical','organic synthesis','catalysis','electrochemi','spectrometry'] },
+  { id: 'physics', label: 'PHYSICAL SCIENCES', color: '#0F766E', terms: ['physics','quantum','condensed matter','semiconductor','magnetism','thermodynamic'] },
+  { id: 'math', label: 'MATHEMATICAL SCIENCES', color: '#9333EA', terms: ['mathematic','statistic','numerical','differential equation','probability','optimization'] },
+  { id: 'civil', label: 'CIVIL & ENVIRONMENTAL', color: '#166534', terms: ['environmental','water','structural','geotechnical','remote sensing','climate','hydrolog'] },
+  { id: 'mech', label: 'MECHANICAL & ENERGY', color: '#9A3412', terms: ['mechanical','energy','thermal','fluid','robotics','manufactur','vibration'] },
+];
+const DEFAULT_CLUSTER = { id: 'other', label: 'OTHER RESEARCH AREAS', color: '#6B7280' };
+
+/* ============================================================
+   DOM refs
+   ============================================================ */
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const loadingDiv = document.getElementById('loading-div');
+const loadingText = document.getElementById('loading-text');
+const tooltip = document.getElementById('tooltip');
+const statusPill = document.getElementById('data-status-pill');
+
+/* ============================================================
+   STATE
+   ============================================================ */
+let selectedResearchers = [];
+let researchers = [];
+let unmatchedResearchers = [];
+let network = { nodes: [], links: [] };
+let clusters = [];
+let selectedResearcher = null;
+let hoveredResearcher = null;
+let zoomLevel = 1;
+let panX = 0, panY = 0;
+let animationStarted = false;
+let simulationSettled = false;
+let simTicks = 0;
+let openAlexRequestsThisSession = 0;
+let isOffline = false;
+let usedEmbeddedSeed = false;
+let shortlist = [];
+let draggingCanvas = false;
+let dragStart = null;
+
+window.__iitMandiNetworkState = { selectedResearchers, researchers, unmatchedResearchers, network };
+
+function resizeCanvas() {
+  // While a non-map tab is open the canvas is display:none and measures 0x0.
+  // Resizing to 0 would make the force simulation clamp every node into the
+  // corner and then persist that broken layout, so ignore those measurements.
+  const w = canvas.parentElement.clientWidth, h = canvas.parentElement.clientHeight;
+  if (w < 2 || h < 2) return;
+  canvas.width = w;
+  canvas.height = h;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+/* ============================================================
+   CACHE LAYER (localStorage)
+   ============================================================ */
+function loadCacheRaw() {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || parsed.version !== 1) return null;
+    return parsed;
+  } catch (e) {
+    console.warn('Cache read failed', e);
+    return null;
+  }
+}
+
+function saveCacheRaw(cache) {
+  try {
+    cache.updatedAt = new Date().toISOString();
+    localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
+    return true;
+  } catch (e) {
+    console.warn('Cache write failed', e);
+    return false;
+  }
+}
+
+function newEmptyCache() {
+  return { version: 1, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), researchers: {}, network: { nodes: [], links: [] } };
+}
+
+let CACHE = loadCacheRaw();
+
+function getCachedResearcher(id) {
+  if (!CACHE || !CACHE.researchers) return null;
+  return CACHE.researchers[id] || null;
+}
+
+function setCachedResearcher(id, entry) {
+  if (!CACHE) CACHE = newEmptyCache();
+  if (!CACHE.researchers) CACHE.researchers = {};
+  CACHE.researchers[id] = entry;
+  saveCacheRaw(CACHE);
+}
+
+function getCachedOpenAlexId(id) {
+  const entry = getCachedResearcher(id);
+  return entry ? entry.openalexId || null : null;
+}
+
+function setCachedOpenAlexId(id, openalexId) {
+  const entry = getCachedResearcher(id) || {};
+  entry.openalexId = openalexId;
+  setCachedResearcher(id, entry);
+}
+
+function isCacheValid(cachedAtIso) {
+  if (!cachedAtIso) return false;
+  const age = Date.now() - new Date(cachedAtIso).getTime();
+  return age < CACHE_TTL_DAYS * 24 * 60 * 60 * 1000;
+}
+
+function daysOld(cachedAtIso) {
+  if (!cachedAtIso) return Infinity;
+  return (Date.now() - new Date(cachedAtIso).getTime()) / (24 * 60 * 60 * 1000);
+}
+
+function seedCacheFromEmbedded() {
+  const cache = newEmptyCache();
+  const ts = EMBEDDED_SEED.timestamp || new Date().toISOString();
+  EMBEDDED_SEED.researchers.forEach(r => {
+    cache.researchers[r.selectedId] = {
+      selectedData: { id: r.selectedId, name: r.selectedName, designation: r.designation, school: r.school },
+      openalexId: r.openalexId,
+      openalexData: r,
+      cachedAt: ts,
+      matchStatus: 'verified'
+    };
+  });
+  EMBEDDED_SEED.unmatched.forEach(u => {
+    cache.researchers[u.id] = {
+      selectedData: { id: u.id, name: u.name, designation: u.designation, school: u.school },
+      openalexId: null,
+      openalexData: { reason: u.reason },
+      cachedAt: ts,
+      matchStatus: 'unmatched'
+    };
+  });
+  cache.createdAt = ts;
+  cache.updatedAt = ts;
+  saveCacheRaw(cache);
+  usedEmbeddedSeed = true;
+  return cache;
+}
+
+function clearLocalData() {
+  if (!confirm('This removes locally stored researcher data, network layout, and shortlist for this app only. Continue?')) return;
+  localStorage.removeItem(CACHE_KEY);
+  localStorage.removeItem(SHORTLIST_KEY);
+  location.reload();
+}
+
+function exportData() {
+  const cache = CACHE || newEmptyCache();
+  const dataStr = JSON.stringify({
+    selected_researchers: selectedResearchers,
+    researcher_metadata: researchers,
+    unmatched_researchers: unmatchedResearchers,
+    network: { nodes: network.nodes.map(n => ({ openalexId: n.openalexId, name: n.name, school: n.school, cluster: n.clusterId })),
+      links: network.links.map(l => ({ source: network.nodes[l.source]?.openalexId, target: network.nodes[l.target]?.openalexId, similarity: l.similarity })) },
+    shortlist,
+    cache_meta: { createdAt: cache.createdAt, updatedAt: cache.updatedAt, version: cache.version },
+    methodology: {
+      data_source: 'OpenAlex (openalex.org)',
+      similarity_method: 'Jaccard similarity of OpenAlex author-level topics',
+      limitation: 'Topic similarity does not imply collaboration or co-authorship.'
+    },
+    timestamp: new Date().toISOString()
+  }, null, 2);
+  const blob = new Blob([dataStr], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'iit-mandi-research-similarity-network.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ============================================================
+   SHORTLIST
+   ============================================================ */
+function loadShortlist() {
+  try {
+    const raw = localStorage.getItem(SHORTLIST_KEY);
+    shortlist = raw ? JSON.parse(raw) : [];
+  } catch (e) { shortlist = []; }
+}
+function saveShortlist() {
+  localStorage.setItem(SHORTLIST_KEY, JSON.stringify(shortlist));
+  renderShortlist();
+}
+function toggleShortlist(openalexId) {
+  const idx = shortlist.indexOf(openalexId);
+  if (idx >= 0) shortlist.splice(idx, 1); else shortlist.push(openalexId);
+  saveShortlist();
+  if (selectedResearcher) displayResearcherInfo(selectedResearcher);
+}
+function renderShortlist() {
+  document.getElementById('shortlist-count').textContent = shortlist.length;
+  const navBadge = document.getElementById('nav-count-shortlist');
+  if (navBadge) navBadge.textContent = shortlist.length;
+  if (typeof renderShortlistView === 'function') renderShortlistView();
+  const body = document.getElementById('shortlist-body');
+  if (shortlist.length === 0) {
+    body.innerHTML = '<div class="empty-hint">Add researchers from their profile to compare them here.</div>';
+    return;
+  }
+  body.innerHTML = shortlist.map(id => {
+    const r = network.nodes.find(n => n.openalexId === id);
+    const name = r ? escapeHtml(r.name) : 'Unknown';
+    return `<div class="shortlist-item"><span>${name}</span><button class="rm" onclick="toggleShortlist('${id}')">Remove</button></div>`;
+  }).join('');
+}
+function exportShortlist() {
+  const items = shortlist.map(id => network.nodes.find(n => n.openalexId === id)).filter(Boolean);
+  const blob = new Blob([JSON.stringify(items, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'research-shortlist.json'; a.click();
+  URL.revokeObjectURL(url);
+}
+function compareShortlist() {
+  const items = shortlist.map(id => network.nodes.find(n => n.openalexId === id)).filter(Boolean);
+  const body = document.getElementById('compare-modal-body');
+  if (items.length === 0) {
+    body.innerHTML = '<div class="empty-hint">Your shortlist is empty. Add researchers from their profile panel first.</div>';
+  } else {
+    body.innerHTML = `<div style="display:flex;gap:14px;overflow-x:auto;">` + items.map(r => `
+      <div style="min-width:180px;border:1px solid var(--border);border-radius:8px;padding:10px;">
+        <div class="researcher-name" style="font-size:13px;">${escapeHtml(r.name)}</div>
+        <div class="researcher-detail">${escapeHtml(r.designation || '')}</div>
+        <div class="researcher-detail">${escapeHtml(r.school || '')}</div>
+        <div class="detail-label">Publications</div><div class="researcher-detail">${r.publications ?? 'Not available'}</div>
+        <div class="detail-label">Citations</div><div class="researcher-detail">${(r.citationCount ?? 0).toLocaleString()}</div>
+        <div class="detail-label">Topics</div>
+        ${(r.topics || []).slice(0,4).map(t => `<span class="topic-tag">${escapeHtml(t)}</span>`).join('')}
+      </div>`).join('') + `</div>`;
+  }
+  document.getElementById('compare-modal').classList.add('open');
+}
+function closeCompareModal() { document.getElementById('compare-modal').classList.remove('open'); }
+
+/* ============================================================
+   OPENALEX RESOLUTION (unchanged core logic, cache-aware)
+   ============================================================ */
+function normalizeText(value) {
+  return (value || '').toString().toLowerCase().normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+function getInstitutions(author) {
+  const institutions = [];
+  if (author.last_known_institution) institutions.push(author.last_known_institution);
+  if (Array.isArray(author.last_known_institutions)) institutions.push(...author.last_known_institutions);
+  if (Array.isArray(author.affiliations)) {
+    author.affiliations.forEach(a => { if (Array.isArray(a.institutions)) institutions.push(...a.institutions); });
+  }
+  const seen = new Set();
+  return institutions.filter(inst => {
+    const key = inst?.id || inst?.display_name;
+    if (!key || seen.has(key)) return false;
+    seen.add(key); return true;
+  });
+}
+function hasIITMandiInstitution(author) {
+  return getInstitutions(author).some(inst => IIT_MANDI_TERMS.some(t => normalizeText(inst.display_name).includes(t)));
+}
+function hasIndiaInstitution(author) { return getInstitutions(author).some(inst => inst.country_code === 'IN'); }
+function getPrimaryInstitution(author) {
+  const institutions = getInstitutions(author);
+  const iitMandi = institutions.find(inst => IIT_MANDI_TERMS.some(t => normalizeText(inst.display_name).includes(t)));
+  return (iitMandi || institutions[0])?.display_name || 'Unknown';
+}
+function nameSimilarity(selectedName, candidateName) {
+  const selected = normalizeText(selectedName), candidate = normalizeText(candidateName);
+  if (!selected || !candidate) return 0;
+  if (selected === candidate) return 45;
+  if (candidate.includes(selected) || selected.includes(candidate)) return 35;
+  const selectedParts = selected.split(' ');
+  const candidateParts = new Set(candidate.split(' '));
+  const overlap = selectedParts.filter(p => candidateParts.has(p)).length;
+  return Math.round((overlap / selectedParts.length) * 30);
+}
+function scoreAuthorMatch(selected, author) {
+  const nameScore = nameSimilarity(selected.name, author.display_name);
+  const institutionScore = hasIITMandiInstitution(author) ? 45 : 0;
+  const countryScore = hasIndiaInstitution(author) ? 8 : 0;
+  const worksScore = author.works_count > 0 ? 5 : 0;
+  const orcidScore = selected.orcid && author.orcid === selected.orcid ? 50 : 0;
+  const score = nameScore + institutionScore + countryScore + worksScore + orcidScore;
+  return { score, nameScore, institutionMatch: institutionScore > 0, countryMatch: countryScore > 0, worksCount: author.works_count || 0 };
+}
+function isConfidentMatch(selected, author, score) {
+  const exactName = normalizeText(selected.name) === normalizeText(author.display_name);
+  if (selected.openalex_id) return score.nameScore >= 20;
+  return score.score >= 65 && (score.institutionMatch || (exactName && score.countryMatch));
+}
+function normalizeOpenAlexId(openalexId) {
+  if (!openalexId) return null;
+  const id = openalexId.toString().trim();
+  if (!id) return null;
+  if (id.startsWith('http')) return id;
+  return `https://openalex.org/${id.replace(/^\/+/, '')}`;
+}
+function delay(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+function getOpenAlexMailtoQuery(prefix = '&') { return OPENALEX_MAILTO ? `${prefix}mailto=${encodeURIComponent(OPENALEX_MAILTO)}` : ''; }
+
+async function fetchOpenAlexJson(url, context, attempt = 1) {
+  await delay(OPENALEX_REQUEST_DELAY_MS);
+  openAlexRequestsThisSession++;
+  updateCacheModalStats();
+  let response;
+  try {
+    response = await fetch(url);
+  } catch (e) {
+    isOffline = true;
+    throw new Error('Network unavailable');
+  }
+  if (response.status === 429 && attempt < 2) {
+    const retryAfterSeconds = Number(response.headers.get('Retry-After'));
+    const suggestedDelay = Number.isFinite(retryAfterSeconds) ? retryAfterSeconds * 1000 : 15000 * attempt;
+    const retryDelay = Math.min(suggestedDelay, 60000);
+    loadingText.textContent = `OpenAlex rate limit reached. Retrying in ${Math.round(retryDelay / 1000)}s...`;
+    await delay(retryDelay);
+    return fetchOpenAlexJson(url, context, attempt + 1);
+  }
+  if (response.status === 429) throw new Error('OpenAlex is rate-limiting requests right now. Using cached data where available.');
+  if (!response.ok) {
+    let message = `${context} failed with HTTP ${response.status}`;
+    try { const body = await response.text(); if (body) message += `: ${body.slice(0, 160)}`; } catch (_) {}
+    throw new Error(message);
+  }
+  return response.json();
+}
+async function fetchAuthorById(openalexId) {
+  const normalizedId = normalizeOpenAlexId(openalexId);
+  if (!normalizedId) return null;
+  const authorId = encodeURIComponent(normalizedId.split('/').pop());
+  return fetchOpenAlexJson(`${OPENALEX_AUTHOR_ENDPOINT}/${authorId}${getOpenAlexMailtoQuery('?')}`, `OpenAlex author lookup`);
+}
+async function searchAuthorByName(selected) {
+  const searchUrl = `${OPENALEX_AUTHOR_ENDPOINT}?search=${encodeURIComponent(selected.name)}&per_page=10${getOpenAlexMailtoQuery()}`;
+  const data = await fetchOpenAlexJson(searchUrl, `OpenAlex search for ${selected.name}`);
+  const candidates = data.results || [];
+  const scored = candidates.map(author => ({ author, match: scoreAuthorMatch(selected, author) })).sort((a, b) => b.match.score - a.match.score);
+  const best = scored[0];
+  if (!best || !isConfidentMatch(selected, best.author, best.match)) {
+    return { matched: false, reason: best ? `Best candidate was ${best.author.display_name} at ${getPrimaryInstitution(best.author)} (match score ${best.match.score}); below the confidence threshold.` : 'No OpenAlex author candidates returned.' };
+  }
+  return { matched: true, author: best.author, match: best.match };
+}
+function getAuthorTopics(author) { return (author.topics || []).slice(0, 5).map(t => t.display_name).filter(Boolean); }
+function mapAuthorToResearcher(selected, author, match) {
+  return {
+    selectedId: selected.id, selectedName: selected.name, designation: selected.designation || '', school: selected.school || '',
+    id: author.id, openalexId: author.id, name: author.display_name, institution: getPrimaryInstitution(author),
+    institutions: getInstitutions(author).map(i => ({ id: i.id, display_name: i.display_name, country_code: i.country_code })),
+    topics: getAuthorTopics(author), publications: author.works_count || 0, citationCount: author.cited_by_count || 0,
+    orcid: author.orcid || null, matchScore: match?.score || null, matchedBy: selected.openalex_id ? 'openalex_id' : 'name_search'
+  };
+}
+async function resolveSelectedResearcher(selected, index, total) {
+  loadingText.textContent = `Resolving researchers... ${index + 1} of ${total}: ${selected.name}`;
+  try {
+    const cachedId = getCachedOpenAlexId(selected.id) || selected.openalex_id;
+    if (cachedId) {
+      const author = await fetchAuthorById(cachedId);
+      const match = scoreAuthorMatch(selected, author);
+      if (isConfidentMatch(selected, author, match)) return { matched: true, researcher: mapAuthorToResearcher(selected, author, match) };
+      return { matched: false, unmatched: { ...selected, reason: `OpenAlex ID did not confidently match ${selected.name}.` } };
+    }
+    const result = await searchAuthorByName(selected);
+    if (result.matched) return { matched: true, researcher: mapAuthorToResearcher(selected, result.author, result.match) };
+    return { matched: false, unmatched: { ...selected, reason: result.reason } };
+  } catch (error) {
+    return { matched: false, unmatched: { ...selected, reason: error.message } };
+  }
+}
+
+/* ============================================================
+   MAIN LOAD FLOW (cache-first)
+   ============================================================ */
+async function fetchResearchers() {
+  try {
+    const selectedResponse = await fetch('./iit_mandi_selected_50_researchers.json');
+    if (!selectedResponse.ok) throw new Error('Could not load ./iit_mandi_selected_50_researchers.json. Serve this file alongside the JSON from a local web server.');
+    selectedResearchers = await selectedResponse.json();
+    if (!Array.isArray(selectedResearchers) || selectedResearchers.length !== 50) {
+      throw new Error('The selected researchers JSON must contain exactly 50 researchers.');
+    }
+
+    const hadCache = !!CACHE && CACHE.researchers && Object.keys(CACHE.researchers).length > 0;
+    if (!hadCache) {
+      loadingText.textContent = 'Preparing IIT Mandi research data...';
+      CACHE = seedCacheFromEmbedded();
+    } else {
+      loadingText.textContent = 'Loading saved research data...';
+    }
+
+    researchers = [];
+    unmatchedResearchers = [];
+    let staleCount = 0;
+    let needsResolution = [];
+
+    selectedResearchers.forEach((sel) => {
+      const cached = getCachedResearcher(sel.id);
+      if (cached) {
+        if (!isCacheValid(cached.cachedAt)) staleCount++;
+        if (cached.matchStatus === 'verified' && cached.openalexData) {
+          researchers.push(cached.openalexData);
+        } else if (cached.matchStatus === 'unmatched') {
+          unmatchedResearchers.push({ id: sel.id, name: sel.name, designation: sel.designation, school: sel.school, openalex_id: null, reason: cached.openalexData?.reason || 'No confident OpenAlex match found.' });
+        }
+      } else {
+        needsResolution.push(sel);
+      }
+    });
+
+    if (needsResolution.length > 0) {
+      loadingText.textContent = `Resolving researchers...`;
+      for (let i = 0; i < needsResolution.length; i++) {
+        const sel = needsResolution[i];
+        const result = await resolveSelectedResearcher(sel, i, needsResolution.length);
+        const now = new Date().toISOString();
+        if (result.matched) {
+          researchers.push(result.researcher);
+          setCachedResearcher(sel.id, { selectedData: sel, openalexId: result.researcher.openalexId, openalexData: result.researcher, cachedAt: now, matchStatus: 'verified' });
+        } else {
+          unmatchedResearchers.push(result.unmatched);
+          setCachedResearcher(sel.id, { selectedData: sel, openalexId: null, openalexData: { reason: result.unmatched.reason }, cachedAt: now, matchStatus: 'unmatched' });
+        }
+        updateStats();
+      }
+    }
+
+    loadingText.textContent = 'Building research map...';
+
+    const networkCacheValid = CACHE.network && Array.isArray(CACHE.network.nodes) && CACHE.network.nodes.length === researchers.length && researchers.length > 0;
+    if (networkCacheValid) {
+      loadNetworkFromCache();
+    } else {
+      buildNetwork();
+      persistNetworkToCache();
+    }
+    computeClusters();
+    populateSchoolFilter();
+    loadShortlist();
+    renderShortlist();
+
+    updateStats();
+    displayUnmatchedResearchers();
+    updateDataStatusPill(staleCount);
+    initViews();
+
+    const finishedMsg = usedEmbeddedSeed
+      ? `Loaded ${researchers.length} researchers from bundled research data.`
+      : needsResolution.length === 0
+        ? `Loaded ${researchers.length} researchers from local storage.`
+        : `${researchers.length} researchers matched. ${unmatchedResearchers.length} could not be confidently matched.`;
+    loadingDiv.innerHTML = researchers.length === 0
+      ? `<p style="color:var(--danger);"><strong>0</strong> researchers matched. See Unmatched Researchers panel for details.</p>`
+      : `<p>${escapeHtml(finishedMsg)}</p>`;
+    setTimeout(() => { loadingDiv.style.display = 'none'; }, 1400);
+
+    window.__iitMandiNetworkState = { selectedResearchers, researchers, unmatchedResearchers, network };
+    initializeVisualization();
+  } catch (error) {
+    console.error('Error fetching data:', error);
+    loadingDiv.innerHTML = `<p style="color:var(--danger);">Error loading data: ${escapeHtml(error.message)}</p>`;
+  }
+}
+
+function updateDataStatusPill(staleCount) {
+  if (isOffline) {
+    statusPill.textContent = 'Offline / Cached Data';
+    statusPill.className = 'status-pill offline';
+  } else if (staleCount > 0) {
+    statusPill.textContent = `${staleCount} profile${staleCount === 1 ? '' : 's'} need updating`;
+    statusPill.className = 'status-pill cached';
+  } else {
+    statusPill.textContent = 'Local data up to date';
+    statusPill.className = 'status-pill cached';
+  }
+}
+
+/* ============================================================
+   REFRESH ACTIONS
+   ============================================================ */
+async function refreshExpired() {
+  const staleIds = selectedResearchers.filter(s => {
+    const c = getCachedResearcher(s.id);
+    return c && !isCacheValid(c.cachedAt);
+  });
+  await refreshList(staleIds);
+}
+async function refreshAll() {
+  await refreshList(selectedResearchers);
+}
+async function refreshList(list) {
+  if (list.length === 0) return;
+  document.getElementById('refresh-expired-btn').disabled = true;
+  loadingDiv.style.display = 'block';
+  for (let i = 0; i < list.length; i++) {
+    const sel = list[i];
+    loadingText.textContent = `Refreshing ${i + 1} of ${list.length}: ${sel.name}`;
+    const result = await resolveSelectedResearcher(sel, i, list.length);
+    const now = new Date().toISOString();
+    if (result.matched) {
+      setCachedResearcher(sel.id, { selectedData: sel, openalexId: result.researcher.openalexId, openalexData: result.researcher, cachedAt: now, matchStatus: 'verified' });
+    } else {
+      setCachedResearcher(sel.id, { selectedData: sel, openalexId: null, openalexData: { reason: result.unmatched.reason }, cachedAt: now, matchStatus: 'unmatched' });
+    }
+  }
+  // Rebuild researchers/unmatched from cache
+  researchers = [];
+  unmatchedResearchers = [];
+  let staleCount = 0;
+  selectedResearchers.forEach(sel => {
+    const cached = getCachedResearcher(sel.id);
+    if (cached) {
+      if (!isCacheValid(cached.cachedAt)) staleCount++;
+      if (cached.matchStatus === 'verified' && cached.openalexData) researchers.push(cached.openalexData);
+      else if (cached.matchStatus === 'unmatched') unmatchedResearchers.push({ id: sel.id, name: sel.name, designation: sel.designation, school: sel.school, openalex_id: null, reason: cached.openalexData?.reason || 'No confident OpenAlex match found.' });
+    }
+  });
+  buildNetwork();
+  persistNetworkToCache();
+  computeClusters();
+  updateStats();
+  displayUnmatchedResearchers();
+  updateDataStatusPill(staleCount);
+  updateCacheModalStats();
+  document.getElementById('refresh-expired-btn').disabled = false;
+  loadingDiv.style.display = 'none';
+}
+
+/* ============================================================
+   NETWORK BUILD / SIMILARITY / CACHE PERSIST
+   ============================================================ */
+function calculateSimilarity(r1, r2) {
+  if (!r1.topics.length || !r2.topics.length) return 0;
+  const set1 = new Set(r1.topics), set2 = new Set(r2.topics);
+  const intersection = new Set([...set1].filter(x => set2.has(x)));
+  const union = new Set([...set1, ...set2]);
+  return intersection.size / union.size;
+}
+
+// Deterministic seeded PRNG so layout is stable across reloads
+function mulberry32(seed) {
+  return function () {
+    seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function buildNetwork() {
+  const rand = mulberry32(42);
+  network.nodes = researchers.map((r, i) => ({
+    ...r,
+    x: canvas.width / 2 + (rand() - 0.5) * canvas.width * 0.8,
+    y: canvas.height / 2 + (rand() - 0.5) * canvas.height * 0.8,
+    vx: 0, vy: 0, index: i
+  }));
+  network.links = [];
+  for (let i = 0; i < researchers.length; i++) {
+    for (let j = i + 1; j < researchers.length; j++) {
+      const similarity = calculateSimilarity(researchers[i], researchers[j]);
+      if (similarity > 0.001) network.links.push({ source: i, target: j, similarity });
+    }
+  }
+  simulationSettled = false;
+  simTicks = 0;
+}
+
+function persistNetworkToCache() {
+  if (!CACHE) CACHE = newEmptyCache();
+  CACHE.network = {
+    nodes: network.nodes.map(n => ({ openalexId: n.openalexId, x: n.x, y: n.y })),
+    links: network.links.map(l => ({ sourceId: network.nodes[l.source].openalexId, targetId: network.nodes[l.target].openalexId, similarity: l.similarity }))
+  };
+  saveCacheRaw(CACHE);
+}
+
+function loadNetworkFromCache() {
+  const idToIndex = {};
+  network.nodes = researchers.map((r, i) => { idToIndex[r.openalexId] = i; return { ...r, x: canvas.width / 2, y: canvas.height / 2, vx: 0, vy: 0, index: i }; });
+  const cachedNodes = CACHE.network.nodes || [];
+  cachedNodes.forEach(cn => {
+    const idx = idToIndex[cn.openalexId];
+    if (idx !== undefined) { network.nodes[idx].x = cn.x; network.nodes[idx].y = cn.y; }
+  });
+  network.links = (CACHE.network.links || []).map(l => {
+    const source = idToIndex[l.sourceId], target = idToIndex[l.targetId];
+    if (source === undefined || target === undefined) return null;
+    return { source, target, similarity: l.similarity };
+  }).filter(Boolean);
+  simulationSettled = true;
+}
+
+function getConnectionCount(index, linksArr) {
+  const arr = linksArr || network.links;
+  return arr.filter(l => l.source === index || l.target === index).length;
+}
+
+/* ============================================================
+   TOPIC CLUSTERING (heuristic, keyword based)
+   ============================================================ */
+function classifyCluster(topics) {
+  const joined = topics.join(' ').toLowerCase();
+  for (const c of CLUSTER_KEYWORDS) {
+    if (c.terms.some(term => joined.includes(term))) return c;
+  }
+  return DEFAULT_CLUSTER;
+}
+function computeClusters() {
+  network.nodes.forEach(node => {
+    const c = classifyCluster(node.topics || []);
+    node.clusterId = c.id; node.clusterLabel = c.label; node.clusterColor = c.color;
+  });
+  const map = {};
+  network.nodes.forEach(n => {
+    if (!map[n.clusterId]) map[n.clusterId] = { id: n.clusterId, label: n.clusterLabel, color: n.clusterColor, members: [] };
+    map[n.clusterId].members.push(n);
+  });
+  clusters = Object.values(map).filter(c => c.members.length >= 2);
+}
+
+/* ============================================================
+   FORCE SIMULATION (stable, settles then stops)
+   ============================================================ */
+function simulateForces() {
+  if (simulationSettled) return;
+  const activeLinks = getFilteredLinks();
+  const k = 60, c = 0.06, repulsion = 900;
+  const centerX = canvas.width / 2, centerY = canvas.height / 2;
+
+  activeLinks.forEach(link => {
+    const source = network.nodes[link.source], target = network.nodes[link.target];
+    const dx = target.x - source.x, dy = target.y - source.y;
+    const distance = Math.sqrt(dx * dx + dy * dy) || 1;
+    const force = (distance - k) * 0.02 * link.similarity;
+    source.vx += (dx / distance) * force; source.vy += (dy / distance) * force;
+    target.vx -= (dx / distance) * force; target.vy -= (dy / distance) * force;
+  });
+
+  for (let i = 0; i < network.nodes.length; i++) {
+    for (let j = i + 1; j < network.nodes.length; j++) {
+      const a = network.nodes[i], b = network.nodes[j];
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const distance = Math.sqrt(dx * dx + dy * dy) || 1;
+      const force = repulsion / (distance * distance);
+      a.vx -= (dx / distance) * force; a.vy -= (dy / distance) * force;
+      b.vx += (dx / distance) * force; b.vy += (dy / distance) * force;
+    }
+  }
+
+  let totalSpeed = 0;
+  network.nodes.forEach(node => {
+    const dx = centerX - node.x, dy = centerY - node.y;
+    node.vx += dx * 0.0006; node.vy += dy * 0.0006;
+    node.vx *= (1 - c); node.vy *= (1 - c);
+    node.x += node.vx; node.y += node.vy;
+    node.x = Math.max(20, Math.min(canvas.width - 20, node.x));
+    node.y = Math.max(20, Math.min(canvas.height - 20, node.y));
+    totalSpeed += Math.abs(node.vx) + Math.abs(node.vy);
+  });
+
+  simTicks++;
+  if ((totalSpeed / Math.max(1, network.nodes.length) < 0.05 && simTicks > 60) || simTicks > 900) {
+    simulationSettled = true;
+    persistNetworkToCache();
+  }
+}
+
+/* ============================================================
+   FILTERS
+   ============================================================ */
+function getSimilarityThreshold() { return Number(document.getElementById('threshold-slider').value) / 100; }
+function getActiveFilters() {
+  return {
+    school: document.getElementById('filter-school').value,
+    minPubs: Number(document.getElementById('filter-min-pubs').value) || 0,
+    minCites: Number(document.getElementById('filter-min-cites').value) || 0
+  };
+}
+function nodePassesFilters(node) {
+  const f = getActiveFilters();
+  if (f.school && node.school !== f.school) return false;
+  if ((node.publications || 0) < f.minPubs) return false;
+  if ((node.citationCount || 0) < f.minCites) return false;
+  return true;
+}
+function getFilteredLinks() {
+  const threshold = getSimilarityThreshold();
+  return network.links.filter(l => {
+    if (l.similarity < threshold) return false;
+    const s = network.nodes[l.source], t = network.nodes[l.target];
+    return nodePassesFilters(s) && nodePassesFilters(t);
+  });
+}
+function populateSchoolFilter() {
+  const schools = [...new Set(researchers.map(r => r.school).filter(Boolean))].sort();
+  const sel = document.getElementById('filter-school');
+  sel.innerHTML = '<option value="">All schools</option>' + schools.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
+}
+function toggleFilterPanel() {
+  const panel = document.getElementById('filter-panel');
+  panel.classList.toggle('open');
+  document.getElementById('filter-toggle-caret').textContent = panel.classList.contains('open') ? 'Hide ▴' : 'Show ▾';
+}
+function applyFilters() { updateStats(); }
+function onThresholdChange() {
+  document.getElementById('threshold-value').textContent = document.getElementById('threshold-slider').value + '%';
+  updateStats();
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function shouldLabelNode(node, filteredLinks) {
+  if (selectedResearcher && selectedResearcher.index === node.index) return true;
+  if (hoveredResearcher && hoveredResearcher.index === node.index) return true;
+  if (!document.getElementById('toggle-labels').checked) return false;
+  const degree = getConnectionCount(node.index, filteredLinks);
+  if (zoomLevel < 0.9) return degree >= 5;
+  if (zoomLevel < 1.6) return degree >= 2 || (selectedResearcher && isNeighbor(node));
+  return true;
+}
+function isNeighbor(node) {
+  if (!selectedResearcher) return false;
+  return network.links.some(l => l.similarity >= getSimilarityThreshold() &&
+    ((l.source === selectedResearcher.index && l.target === node.index) || (l.target === selectedResearcher.index && l.source === node.index)));
+}
+function drawLabel(node, usedBoxes) {
+  const label = node.name;
+  ctx.font = '11px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+  const width = ctx.measureText(label).width + 10;
+  const height = 16;
+  const x = node.x + 11, y = node.y - 14;
+  const box = { x, y: y - 11, width, height };
+  const overlaps = usedBoxes.some(o => box.x < o.x + o.width && box.x + box.width > o.x && box.y < o.y + o.height && box.y + box.height > o.y);
+  const isPinned = (hoveredResearcher && hoveredResearcher.index === node.index) || (selectedResearcher && selectedResearcher.index === node.index);
+  if (overlaps && !isPinned) return;
+  usedBoxes.push(box);
+  ctx.fillStyle = 'rgba(255,255,255,0.92)';
+  ctx.fillRect(x - 4, y - 12, width, height);
+  ctx.strokeStyle = 'rgba(23,59,99,0.18)';
+  ctx.strokeRect(x - 4, y - 12, width, height);
+  ctx.fillStyle = '#172033';
+  ctx.fillText(label, x, y);
+}
+
+function draw() {
+  ctx.fillStyle = '#F7F9FC';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.save();
+  ctx.translate(panX, panY);
+  ctx.scale(zoomLevel, zoomLevel);
+
+  const filteredLinks = getFilteredLinks();
+  const clustersOn = document.getElementById('toggle-clusters').checked;
+  const edgesOn = document.getElementById('toggle-edges').checked;
+
+  // cluster halos + labels
+  if (clustersOn) {
+    clusters.forEach(cl => {
+      const members = cl.members.filter(nodePassesFilters);
+      if (members.length < 2) return;
+      const cx = members.reduce((s, n) => s + n.x, 0) / members.length;
+      const cy = members.reduce((s, n) => s + n.y, 0) / members.length;
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      members.forEach(n => { minX = Math.min(minX, n.x); minY = Math.min(minY, n.y); maxX = Math.max(maxX, n.x); maxY = Math.max(maxY, n.y); });
+      const rx = Math.max(60, (maxX - minX) / 2 + 45), ry = Math.max(60, (maxY - minY) / 2 + 45);
+      ctx.save();
+      ctx.strokeStyle = cl.color + '55';
+      ctx.setLineDash([4, 4]);
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.font = '600 10px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+      ctx.fillStyle = cl.color;
+      ctx.textAlign = 'center';
+      ctx.fillText(cl.label, cx, cy - ry - 8);
+      ctx.textAlign = 'left';
+      ctx.restore();
+    });
+  }
+
+  // edges
+  if (edgesOn) {
+    filteredLinks.forEach(link => {
+      const source = network.nodes[link.source], target = network.nodes[link.target];
+      let dim = false;
+      if (selectedResearcher) {
+        dim = !(link.source === selectedResearcher.index || link.target === selectedResearcher.index);
+      }
+      const baseOpacity = 0.15 + link.similarity * 0.55;
+      const opacity = dim ? baseOpacity * 0.15 : baseOpacity;
+      ctx.strokeStyle = `rgba(0,140,140,${opacity})`;
+      ctx.lineWidth = dim ? 0.6 : (0.6 + link.similarity * 2.6);
+      ctx.beginPath();
+      ctx.moveTo(source.x, source.y);
+      ctx.lineTo(target.x, target.y);
+      ctx.stroke();
+    });
+  }
+
+  // nodes
+  network.nodes.forEach((node, i) => {
+    const passesFilter = nodePassesFilters(node);
+    const isSelected = selectedResearcher && selectedResearcher.index === i;
+    const isHovered = hoveredResearcher && hoveredResearcher.index === i;
+    const isNeighborNode = selectedResearcher && isNeighbor(node);
+    const connectionCount = getConnectionCount(i, filteredLinks);
+    const dim = selectedResearcher && !isSelected && !isNeighborNode;
+    const nodeRadius = 6 + Math.min(10, connectionCount * 0.9);
+    let alpha = passesFilter ? 1 : 0.12;
+    if (dim) alpha *= 0.25;
+
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = isSelected ? '#00A6A6' : (connectionCount > 0 ? '#173B63' : '#9AA4B2');
+    ctx.beginPath();
+    ctx.arc(node.x, node.y, nodeRadius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    if (isSelected) {
+      ctx.strokeStyle = '#00A6A6';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(node.x, node.y, nodeRadius + 5, 0, Math.PI * 2);
+      ctx.stroke();
+    } else if (isHovered) {
+      ctx.strokeStyle = '#173B63';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(node.x, node.y, nodeRadius + 4, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    if (shortlist.includes(node.openalexId)) {
+      ctx.strokeStyle = '#B7791F';
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.arc(node.x, node.y, nodeRadius + 2, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  });
+
+  const usedLabelBoxes = [];
+  network.nodes
+    .filter(n => nodePassesFilters(n) && shouldLabelNode(n, filteredLinks))
+    .sort((a, b) => getConnectionCount(b.index, filteredLinks) - getConnectionCount(a.index, filteredLinks))
+    .forEach(node => drawLabel(node, usedLabelBoxes));
+
+  ctx.restore();
+  document.getElementById('stat-connections').textContent = filteredLinks.length;
+}
+
+function render() { draw(); }
+
+function animationLoop() {
+  // Skip simulation/drawing entirely while the map tab is hidden.
+  if (currentView === 'map' && canvas.width > 1 && canvas.height > 1) {
+    simulateForces();
+    draw();
+  }
+  requestAnimationFrame(animationLoop);
+}
+
+function initializeVisualization() {
+  if (!animationStarted) { animationStarted = true; animationLoop(); }
+}
+
+/* ============================================================
+   INTERACTION: hover / click / edge-click / drag / zoom
+   ============================================================ */
+function findNodeAtEvent(e) {
+  const rect = canvas.getBoundingClientRect();
+  const clientX = e.clientX ?? (e.touches && e.touches[0].clientX);
+  const clientY = e.clientY ?? (e.touches && e.touches[0].clientY);
+  const x = (clientX - rect.left - panX) / zoomLevel;
+  const y = (clientY - rect.top - panY) / zoomLevel;
+  return network.nodes.find(node => {
+    const dx = node.x - x, dy = node.y - y;
+    return Math.sqrt(dx * dx + dy * dy) < 15;
+  }) || null;
+}
+function findEdgeAtEvent(e) {
+  const rect = canvas.getBoundingClientRect();
+  const x = (e.clientX - rect.left - panX) / zoomLevel;
+  const y = (e.clientY - rect.top - panY) / zoomLevel;
+  const filtered = getFilteredLinks();
+  for (const link of filtered) {
+    const s = network.nodes[link.source], t = network.nodes[link.target];
+    const dist = pointToSegmentDist(x, y, s.x, s.y, t.x, t.y);
+    if (dist < 6) return link;
+  }
+  return null;
+}
+function pointToSegmentDist(px, py, x1, y1, x2, y2) {
+  const dx = x2 - x1, dy = y2 - y1;
+  const lenSq = dx * dx + dy * dy || 1;
+  let t = ((px - x1) * dx + (py - y1) * dy) / lenSq;
+  t = Math.max(0, Math.min(1, t));
+  const cx = x1 + t * dx, cy = y1 + t * dy;
+  return Math.sqrt((px - cx) ** 2 + (py - cy) ** 2);
+}
+
+function showTooltip(node, e) {
+  if (!node) { tooltip.style.display = 'none'; return; }
+  const topics = (node.topics || []).slice(0, 3);
+  const conn = getConnectionCount(node.index, getFilteredLinks());
+  tooltip.innerHTML = `
+    <b>${escapeHtml(node.name)}</b>
+    <div class="tt-muted">${escapeHtml(node.designation || '')}${node.school ? ' · ' + escapeHtml(node.school) : ''}</div>
+    <div style="margin-top:6px;">${topics.length ? escapeHtml(topics.join(', ')) : 'Not available'}</div>
+    <div class="tt-muted" style="margin-top:6px;">Publications: ${node.publications ?? 'Not available'} · Citations: ${(node.citationCount ?? 0).toLocaleString()}</div>
+    <div class="tt-muted">Similarity connections: ${conn}</div>
+  `;
+  const rect = canvas.getBoundingClientRect();
+  tooltip.style.left = `${e.clientX - rect.left + 16}px`;
+  tooltip.style.top = `${e.clientY - rect.top + 16}px`;
+  tooltip.style.display = 'block';
+}
+
+canvas.addEventListener('mousemove', (e) => {
+  if (draggingCanvas) {
+    panX += e.clientX - dragStart.x;
+    panY += e.clientY - dragStart.y;
+    dragStart = { x: e.clientX, y: e.clientY };
+    return;
+  }
+  hoveredResearcher = findNodeAtEvent(e);
+  canvas.style.cursor = hoveredResearcher ? 'pointer' : 'default';
+  showTooltip(hoveredResearcher, e);
+});
+canvas.addEventListener('mouseleave', () => { hoveredResearcher = null; tooltip.style.display = 'none'; draggingCanvas = false; });
+canvas.addEventListener('mousedown', (e) => {
+  if (!findNodeAtEvent(e)) { draggingCanvas = true; dragStart = { x: e.clientX, y: e.clientY }; }
+});
+window.addEventListener('mouseup', () => { draggingCanvas = false; });
+canvas.addEventListener('click', (e) => {
+  const node = findNodeAtEvent(e);
+  if (node) {
+    selectedResearcher = node;
+    displayResearcherInfo(node);
+    return;
+  }
+  const edge = findEdgeAtEvent(e);
+  if (edge) { showEdgeModal(edge); return; }
+  selectedResearcher = null;
+  document.getElementById('researcher-details').innerHTML = '<div class="panel researcher-info"><div class="empty-hint">Click a researcher on the map to see their profile, topic fingerprint, and similar researchers.</div></div>';
+});
+canvas.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const zoomSpeed = 0.1;
+  zoomLevel = Math.max(0.4, Math.min(3.5, zoomLevel + (e.deltaY > 0 ? -zoomSpeed : zoomSpeed)));
+});
+// basic touch support
+let lastTouchDist = null;
+canvas.addEventListener('touchstart', (e) => {
+  if (e.touches.length === 1) {
+    const node = findNodeAtEvent(e);
+    if (node) { selectedResearcher = node; displayResearcherInfo(node); }
+    else { draggingCanvas = true; dragStart = { x: e.touches[0].clientX, y: e.touches[0].clientY }; }
+  } else if (e.touches.length === 2) {
+    lastTouchDist = touchDist(e.touches);
+  }
+}, { passive: true });
+canvas.addEventListener('touchmove', (e) => {
+  if (e.touches.length === 1 && draggingCanvas) {
+    panX += e.touches[0].clientX - dragStart.x;
+    panY += e.touches[0].clientY - dragStart.y;
+    dragStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  } else if (e.touches.length === 2) {
+    const d = touchDist(e.touches);
+    if (lastTouchDist) zoomLevel = Math.max(0.4, Math.min(3.5, zoomLevel * (d / lastTouchDist)));
+    lastTouchDist = d;
+  }
+}, { passive: true });
+canvas.addEventListener('touchend', () => { draggingCanvas = false; lastTouchDist = null; });
+function touchDist(touches) {
+  const dx = touches[0].clientX - touches[1].clientX, dy = touches[0].clientY - touches[1].clientY;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+function showEdgeModal(edge) {
+  const a = network.nodes[edge.source], b = network.nodes[edge.target];
+  const shared = (a.topics || []).filter(t => (b.topics || []).includes(t));
+  const body = document.getElementById('edge-modal-body');
+  body.innerHTML = `
+    <div class="mrow"><span>${escapeHtml(a.name)}</span><span>${escapeHtml(b.name)}</span></div>
+    <div class="detail-label">Similarity</div>
+    <div class="researcher-detail" style="font-size:18px;font-weight:700;color:var(--navy);">${(edge.similarity * 100).toFixed(0)}%</div>
+    <div class="detail-label">Shared research topics</div>
+    ${shared.length ? shared.map(t => `<div class="researcher-detail">• ${escapeHtml(t)}</div>`).join('') : '<div class="researcher-detail">Not available</div>'}
+    <div class="detail-label">Method</div>
+    <div class="researcher-detail">Topic-based similarity calculated from available OpenAlex research topics (Jaccard similarity of author-level topic lists).</div>
+  `;
+  document.getElementById('edge-modal').classList.add('open');
+}
+function closeEdgeModal() { document.getElementById('edge-modal').classList.remove('open'); }
+
+/* ============================================================
+   PROFILE PANEL
+   ============================================================ */
+function escapeHtml(value) {
+  return (value || '').toString().replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function displayResearcherInfo(researcher) {
+  const details = document.getElementById('researcher-details');
+  const filtered = getFilteredLinks();
+  const connections = filtered.filter(l => l.source === researcher.index || l.target === researcher.index);
+  const inShortlist = shortlist.includes(researcher.openalexId);
+
+  let html = `<div class="panel researcher-info">
+    <div class="researcher-name">${escapeHtml(researcher.name)}</div>
+    <div class="researcher-detail"><strong>${escapeHtml(researcher.institution || 'Not available')}</strong></div>
+    <div class="researcher-detail">${escapeHtml(researcher.designation || 'Not available')}${researcher.school ? `, ${escapeHtml(researcher.school)}` : ''}</div>
+    <div class="researcher-detail">Topic cluster: <strong>${escapeHtml(researcher.clusterLabel || 'Not available')}</strong></div>
+    <div class="detail-label">Topic Fingerprint</div>`;
+
+  if (!researcher.topics || researcher.topics.length === 0) {
+    html += '<div class="researcher-detail">No OpenAlex topics available</div>';
+  } else {
+    researcher.topics.forEach(t => { html += `<span class="topic-tag">${escapeHtml(t)}</span>`; });
+  }
+
+  html += `<div class="detail-label">Statistics</div>
+    <div class="researcher-detail">Publications: <strong>${researcher.publications ?? 'Not available'}</strong></div>
+    <div class="researcher-detail">Citations: <strong>${(researcher.citationCount ?? 0).toLocaleString()}</strong></div>
+    <div class="researcher-detail">Connections (at current threshold): <strong>${connections.length}</strong></div>`;
+
+  if (connections.length > 0) {
+    html += `<div class="detail-label">Similar Researchers</div>`;
+    const top = [...connections].sort((a, b) => b.similarity - a.similarity).slice(0, 5);
+    top.forEach(conn => {
+      const otherIdx = conn.source === researcher.index ? conn.target : conn.source;
+      const other = network.nodes[otherIdx];
+      html += `<div class="similar-row" onclick='window.__selectByOpenAlexId("${other.openalexId}")'>
+        <span>${escapeHtml(other.name)}</span><span class="similar-pct">${(conn.similarity * 100).toFixed(0)}%</span>
+      </div>`;
+    });
+  }
+
+  html += `<div class="detail-label">Links</div>
+    <div class="researcher-detail">OpenAlex: ${researcher.openalexId ? `<a href="${researcher.openalexId}" target="_blank" rel="noopener">${escapeHtml(researcher.openalexId)}</a>` : 'Not available'}</div>
+    <div class="researcher-detail">ORCID: ${researcher.orcid ? `<a href="${researcher.orcid}" target="_blank" rel="noopener">${escapeHtml(researcher.orcid)}</a>` : 'Not available'}</div>
+    <div class="researcher-detail">IIT Mandi profile: Not available</div>`;
+
+  html += `<div class="btn-row"><button class="btn ${inShortlist ? 'secondary' : 'teal'} small" onclick="toggleShortlist('${researcher.openalexId}')">${inShortlist ? '− Remove from shortlist' : '+ Add to shortlist'}</button></div>`;
+  html += `</div>`;
+  details.innerHTML = html;
+}
+window.__selectByOpenAlexId = function (openalexId) {
+  const node = network.nodes.find(n => n.openalexId === openalexId);
+  if (node) { selectedResearcher = node; displayResearcherInfo(node); centerOn(node); }
+};
+
+function displayUnmatchedResearchers() {
+  const panel = document.getElementById('unmatched-panel');
+  const body = document.getElementById('unmatched-body');
+  if (unmatchedResearchers.length === 0) { panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+  body.innerHTML = unmatchedResearchers.map(r => `
+    <div class="unmatched-item">
+      <strong>${escapeHtml(r.name)}</strong><br>
+      ${escapeHtml(r.designation || '')}${r.school ? `, ${escapeHtml(r.school)}` : ''}<br>
+      <span style="color:var(--secondary);">${escapeHtml(r.reason || 'No confident OpenAlex match found.')}</span>
+    </div>`).join('');
+}
+
+function updateStats() {
+  const allTopics = new Set();
+  researchers.forEach(r => (r.topics || []).forEach(t => allTopics.add(t)));
+  const filtered = getFilteredLinks();
+  const avgSimilarity = filtered.length > 0 ? (filtered.reduce((s, l) => s + l.similarity, 0) / filtered.length * 100).toFixed(0) : 0;
+
+  document.getElementById('stat-researchers').textContent = selectedResearchers.length || 0;
+  document.getElementById('stat-matched').textContent = researchers.length;
+  document.getElementById('stat-unmatched').textContent = unmatchedResearchers.length;
+  document.getElementById('stat-connections').textContent = filtered.length;
+  document.getElementById('stat-similarity').textContent = avgSimilarity + '%';
+  document.getElementById('stat-topics').textContent = allTopics.size;
+}
+
+/* ============================================================
+   MAP CONTROLS
+   ============================================================ */
+function zoomBy(factor) { zoomLevel = Math.max(0.4, Math.min(3.5, zoomLevel * factor)); }
+function resetView() { zoomLevel = 1; panX = 0; panY = 0; selectedResearcher = null; }
+function fitToView() {
+  if (network.nodes.length === 0) return;
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  network.nodes.forEach(n => { minX = Math.min(minX, n.x); minY = Math.min(minY, n.y); maxX = Math.max(maxX, n.x); maxY = Math.max(maxY, n.y); });
+  const w = maxX - minX || 1, h = maxY - minY || 1;
+  const scale = Math.min((canvas.width - 80) / w, (canvas.height - 80) / h, 2.5);
+  zoomLevel = Math.max(0.4, scale);
+  panX = canvas.width / 2 - ((minX + maxX) / 2) * zoomLevel;
+  panY = canvas.height / 2 - ((minY + maxY) / 2) * zoomLevel;
+}
+function centerOn(node) {
+  zoomLevel = Math.max(zoomLevel, 1.4);
+  panX = canvas.width / 2 - node.x * zoomLevel;
+  panY = canvas.height / 2 - node.y * zoomLevel;
+}
+function centerSelected() { if (selectedResearcher) centerOn(selectedResearcher); }
+function toggleFullscreen() {
+  const el = document.querySelector('.container');
+  if (!document.fullscreenElement) el.requestFullscreen?.();
+  else document.exitFullscreen?.();
+}
+
+/* ============================================================
+   SEARCH
+   ============================================================ */
+document.getElementById('search-input').addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter') return;
+  const q = e.target.value.trim().toLowerCase();
+  if (!q) return;
+  const byName = network.nodes.find(n => n.name.toLowerCase().includes(q));
+  if (byName) {
+    selectedResearcher = byName;
+    displayResearcherInfo(byName);
+    centerOn(byName);
+    return;
+  }
+  const byTopic = network.nodes.filter(n => (n.topics || []).some(t => t.toLowerCase().includes(q)));
+  if (byTopic.length > 0) {
+    selectedResearcher = byTopic[0];
+    displayResearcherInfo(byTopic[0]);
+    fitToView();
+  }
+});
+
+/* ============================================================
+   DATA MODAL
+   ============================================================ */
+function updateCacheModalStats() {
+  const total = selectedResearchers.length || Object.keys(CACHE?.researchers || {}).length;
+  let fresh = 0, stale = 0, unresolved = 0, lastUpdated = null;
+  const source = selectedResearchers.length ? selectedResearchers : Object.values(CACHE?.researchers || {}).map(r => r.selectedData);
+  source.forEach(sel => {
+    const c = getCachedResearcher(sel.id);
+    if (!c) { unresolved++; return; }
+    if (c.matchStatus === 'unmatched') { unresolved++; }
+    else if (isCacheValid(c.cachedAt)) fresh++; else stale++;
+    if (!lastUpdated || new Date(c.cachedAt) > new Date(lastUpdated)) lastUpdated = c.cachedAt;
+  });
+  document.getElementById('cache-total').textContent = total;
+  document.getElementById('cache-fresh').textContent = fresh;
+  document.getElementById('cache-stale').textContent = stale;
+  document.getElementById('cache-unresolved').textContent = unresolved;
+  document.getElementById('cache-updated').textContent = lastUpdated ? new Date(lastUpdated).toLocaleString() : '—';
+  document.getElementById('cache-requests').textContent = openAlexRequestsThisSession;
+  document.getElementById('cache-status-note').textContent = usedEmbeddedSeed
+    ? 'This session started from bundled research data (no OpenAlex requests were needed).'
+    : (isOffline ? 'OpenAlex unavailable — showing cached research data.' : '');
+}
+function openDataModal() { updateCacheModalStats(); document.getElementById('data-modal').classList.add('open'); }
+function closeDataModal() { document.getElementById('data-modal').classList.remove('open'); }
+
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', (e) => { if (e.target === m) m.classList.remove('open'); });
+});
+
+/* ============================================================
+   NAV BAR + VIEW SWITCHING
+   ============================================================ */
+let currentView = 'map';
+let dirLayout = 'grid';
+
+const VALID_VIEWS = ['map', 'directory', 'schools', 'topics', 'shortlist'];
+
+function switchView(name, skipHash) {
+  if (!VALID_VIEWS.includes(name)) name = 'map';
+  currentView = name;
+  if (!skipHash) {
+    try { history.replaceState(null, '', '#' + name); } catch (e) { /* file:// */ }
+  }
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.toggle('active', t.dataset.view === name));
+  document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + name));
+  if (name === 'map') {
+    // canvas was hidden, so its measured size is stale
+    resizeCanvas();
+    draw();
+  } else if (name === 'directory') renderDirectory();
+  else if (name === 'schools') renderSchools();
+  else if (name === 'topics') renderTopics();
+  else if (name === 'shortlist') renderShortlistView();
+}
+
+/* ============================================================
+   UNIFIED DIRECTORY DATA
+   Joins the 50 selected researchers with their OpenAlex record
+   (when matched) and their contact/photo profile. Unmatched
+   researchers still appear here — they have real contact details
+   even though OpenAlex metrics are unavailable.
+   ============================================================ */
+function getDirectoryList() {
+  const byId = {};
+  researchers.forEach(r => { byId[r.selectedId] = r; });
+  const unmatchedById = {};
+  unmatchedResearchers.forEach(u => { unmatchedById[u.id] = u; });
+
+  return selectedResearchers.map(sel => {
+    const oa = byId[sel.id] || null;
+    const prof = RESEARCHER_PROFILES[sel.id] || {};
+    const node = oa ? network.nodes.find(n => n.openalexId === oa.openalexId) : null;
+    return {
+      id: sel.id,
+      name: sel.name,
+      designation: sel.designation || prof.dirDesignation || '',
+      school: sel.school || '',
+      email: prof.email || null,
+      altEmails: prof.altEmails || [],
+      photo: prof.photo || null,
+      photoSource: prof.photoSource || null,
+      matched: !!oa,
+      openalexId: oa ? oa.openalexId : null,
+      openalexName: oa ? oa.name : null,
+      institution: oa ? oa.institution : null,
+      topics: oa ? (oa.topics || []) : [],
+      publications: oa ? oa.publications : null,
+      citationCount: oa ? oa.citationCount : null,
+      orcid: oa ? oa.orcid : null,
+      clusterLabel: node ? node.clusterLabel : null,
+      reason: unmatchedById[sel.id] ? unmatchedById[sel.id].reason : null
+    };
+  });
+}
+
+function initials(name) {
+  return (name || '').split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('') || '?';
+}
+function photoFallback(img) {
+  const d = document.createElement('div');
+  d.className = img.dataset.fbclass || 'rphoto-fallback';
+  d.textContent = img.dataset.initials || '?';
+  img.replaceWith(d);
+}
+function photoTag(person, cls) {
+  const fb = cls === 'rphoto' ? 'rphoto-fallback' : (cls === 'tphoto' ? 'tphoto' : 'ph-fallback');
+  if (!person.photo) return `<div class="${fb}">${escapeHtml(initials(person.name))}</div>`;
+  return `<img class="${cls}" src="${escapeHtml(person.photo)}" alt="${escapeHtml(person.name)}" loading="lazy"
+    data-initials="${escapeHtml(initials(person.name))}" data-fbclass="${fb}" onerror="photoFallback(this)">`;
+}
+
+/* ============================================================
+   DIRECTORY VIEW
+   ============================================================ */
+function setDirLayout(mode) {
+  dirLayout = mode;
+  document.getElementById('dir-view-grid').classList.toggle('on', mode === 'grid');
+  document.getElementById('dir-view-table').classList.toggle('on', mode === 'table');
+  renderDirectory();
+}
+
+function getFilteredDirectory() {
+  const q = (document.getElementById('dir-search').value || '').trim().toLowerCase();
+  const school = document.getElementById('dir-school').value;
+  const desig = document.getElementById('dir-desig').value;
+  const sort = document.getElementById('dir-sort').value;
+
+  let list = getDirectoryList().filter(p => {
+    if (school && p.school !== school) return false;
+    if (desig && p.designation !== desig) return false;
+    if (!q) return true;
+    const hay = [p.name, p.openalexName, p.email, p.school, p.designation, p.institution,
+      ...(p.altEmails || []), ...(p.topics || [])].filter(Boolean).join(' ').toLowerCase();
+    return hay.includes(q);
+  });
+
+  const cmp = {
+    id: (a, b) => a.id - b.id,
+    name: (a, b) => a.name.localeCompare(b.name),
+    citations: (a, b) => (b.citationCount || 0) - (a.citationCount || 0),
+    publications: (a, b) => (b.publications || 0) - (a.publications || 0),
+    school: (a, b) => (a.school || '').localeCompare(b.school || '') || a.name.localeCompare(b.name)
+  }[sort] || ((a, b) => a.id - b.id);
+  return list.sort(cmp);
+}
+
+function mailLink(p) {
+  if (!p.email) return '<div class="rcard-mailrow"><span style="color:var(--secondary);font-size:11.5px;">Email not available</span></div>';
+  return `<div class="rcard-mailrow">
+    <a class="rcard-mail" href="mailto:${escapeHtml(p.email)}" title="Send email">✉ ${escapeHtml(p.email)}</a>
+    <button class="icon-btn" title="Copy email address" onclick="copyText('${escapeHtml(p.email)}','Email copied')">⧉</button>
+  </div>`;
+}
+
+function renderDirectory() {
+  const list = getFilteredDirectory();
+  const box = document.getElementById('dir-container');
+  const total = selectedResearchers.length || 50;
+  document.getElementById('dir-subtitle').textContent =
+    `Showing ${list.length} of ${total} researchers · contact details and portraits from official IIT Mandi sources.`;
+
+  if (list.length === 0) {
+    box.innerHTML = '<div class="empty-state">No researchers match your filters.</div>';
+    return;
+  }
+
+  if (dirLayout === 'table') {
+    box.innerHTML = `<div style="overflow-x:auto;"><table class="dir-table">
+      <thead><tr>
+        <th></th><th>Name</th><th>Designation</th><th>School</th><th>Email</th>
+        <th>Publications</th><th>Citations</th><th>Status</th>
+      </tr></thead><tbody>` +
+      list.map(p => `<tr>
+        <td>${photoTag(p, 'tphoto')}</td>
+        <td><strong style="cursor:pointer;color:var(--navy);" onclick="openProfileModal(${p.id})">${escapeHtml(p.name)}</strong></td>
+        <td>${escapeHtml(p.designation)}</td>
+        <td style="font-size:11.5px;color:var(--secondary);">${escapeHtml(p.school)}</td>
+        <td>${p.email ? `<a href="mailto:${escapeHtml(p.email)}">${escapeHtml(p.email)}</a>` : '—'}</td>
+        <td>${p.publications ?? '—'}</td>
+        <td>${p.citationCount != null ? p.citationCount.toLocaleString() : '—'}</td>
+        <td><span class="chip ${p.matched ? 'matched' : 'unmatched'}">${p.matched ? 'On map' : 'No OpenAlex'}</span></td>
+      </tr>`).join('') + `</tbody></table></div>`;
+    return;
+  }
+
+  box.innerHTML = `<div class="dir-grid">` + list.map(p => {
+    const inShort = p.openalexId && shortlist.includes(p.openalexId);
+    return `<div class="rcard">
+      <div class="rcard-top">
+        ${photoTag(p, 'rphoto')}
+        <div style="min-width:0;flex:1;">
+          <div class="rcard-name" onclick="openProfileModal(${p.id})" title="Open full profile">${escapeHtml(p.name)}</div>
+          <div class="rcard-meta">${escapeHtml(p.designation)}</div>
+          <div class="rcard-meta" style="font-size:11px;">${escapeHtml(p.school)}</div>
+          ${mailLink(p)}
+        </div>
+      </div>
+      <div class="rcard-stats">
+        <div class="rstat"><b>${p.publications ?? '—'}</b>Publications</div>
+        <div class="rstat"><b>${p.citationCount != null ? p.citationCount.toLocaleString() : '—'}</b>Citations</div>
+        <div class="rstat"><b>${p.topics.length || '—'}</b>Topics</div>
+      </div>
+      <div class="rcard-body" style="padding-top:10px;">
+        ${p.topics.length
+          ? p.topics.slice(0, 3).map(t => `<span class="topic-tag">${escapeHtml(t)}</span>`).join('')
+          : `<div style="font-size:11.5px;color:var(--secondary);line-height:1.45;">No OpenAlex topic data — this researcher is not plotted on the map.</div>`}
+      </div>
+      <div class="rcard-actions">
+        <button class="btn secondary small" onclick="openProfileModal(${p.id})">Profile</button>
+        ${p.matched ? `<button class="btn secondary small" onclick="viewOnMap(${p.id})">View on map</button>` : ''}
+        ${p.matched ? `<button class="btn ${inShort ? 'secondary' : 'teal'} small" onclick="toggleShortlist('${p.openalexId}');renderDirectory();">${inShort ? '− Shortlist' : '+ Shortlist'}</button>` : ''}
+      </div>
+    </div>`;
+  }).join('') + `</div>`;
+}
+
+function viewOnMap(id) {
+  const p = getDirectoryList().find(x => x.id === id);
+  if (!p || !p.openalexId) return;
+  switchView('map');
+  setTimeout(() => window.__selectByOpenAlexId(p.openalexId), 60);
+}
+
+/* ============================================================
+   PROFILE MODAL
+   ============================================================ */
+function openProfileModal(id) {
+  const p = getDirectoryList().find(x => x.id === id);
+  if (!p) return;
+  const inShort = p.openalexId && shortlist.includes(p.openalexId);
+  const allMails = [p.email, ...(p.altEmails || [])].filter(Boolean);
+
+  let html = `<div class="profile-head">
+    ${photoTag(p, 'profile-photo')}
+    <div style="min-width:0;">
+      <div class="profile-name">${escapeHtml(p.name)}</div>
+      <div class="researcher-detail">${escapeHtml(p.designation)}</div>
+      <div class="researcher-detail" style="color:var(--secondary);">${escapeHtml(p.school)}</div>
+      <div style="margin-top:6px;"><span class="chip ${p.matched ? 'matched' : 'unmatched'}">${p.matched ? 'Plotted on map' : 'Not on map'}</span></div>
+    </div>
+  </div>
+
+  <div class="detail-label">Contact</div>`;
+
+  if (allMails.length) {
+    allMails.forEach((m, i) => {
+      html += `<div class="researcher-detail" style="display:flex;align-items:center;gap:8px;">
+        <a href="mailto:${escapeHtml(m)}">✉ ${escapeHtml(m)}</a>
+        <button class="icon-btn" onclick="copyText('${escapeHtml(m)}','Email copied')">Copy</button>
+        ${i > 0 ? '<span style="font-size:10.5px;color:var(--secondary);">(office / role address)</span>' : ''}
+      </div>`;
+    });
+  } else {
+    html += `<div class="researcher-detail">Not available</div>`;
+  }
+
+  if (p.matched) {
+    html += `<div class="pgrid">
+      <div class="pbox"><div class="n">${p.publications ?? '—'}</div><div class="l">Publications</div></div>
+      <div class="pbox"><div class="n">${p.citationCount != null ? p.citationCount.toLocaleString() : '—'}</div><div class="l">Citations</div></div>
+    </div>
+    <div class="detail-label">Affiliation on record</div>
+    <div class="researcher-detail">${escapeHtml(p.institution || 'Not available')}</div>
+    ${p.openalexName && p.openalexName !== p.name
+      ? `<div class="researcher-detail" style="color:var(--secondary);font-size:11.5px;">Published as: ${escapeHtml(p.openalexName)}</div>` : ''}
+    <div class="detail-label">Topic cluster</div>
+    <div class="researcher-detail">${escapeHtml(p.clusterLabel || 'Not available')}</div>
+    <div class="detail-label">Research topics</div>
+    ${p.topics.length ? p.topics.map(t => `<span class="topic-tag">${escapeHtml(t)}</span>`).join('') : '<div class="researcher-detail">Not available</div>'}
+    <div class="detail-label">Links</div>
+    <div class="researcher-detail">OpenAlex: <a href="${escapeHtml(p.openalexId)}" target="_blank" rel="noopener">${escapeHtml(p.openalexId)}</a></div>
+    <div class="researcher-detail">ORCID: ${p.orcid ? `<a href="${escapeHtml(p.orcid)}" target="_blank" rel="noopener">${escapeHtml(p.orcid)}</a>` : 'Not available'}</div>`;
+  } else {
+    html += `<div class="detail-label">Research metrics</div>
+      <div class="researcher-detail" style="line-height:1.5;">No confident OpenAlex match, so publication and citation data are unavailable for this researcher.</div>
+      ${p.reason ? `<div class="researcher-detail" style="color:var(--secondary);font-size:11.5px;">${escapeHtml(p.reason)}</div>` : ''}`;
+  }
+
+  if (p.photoSource) {
+    html += `<div class="detail-label">Photo source</div>
+      <div class="researcher-detail" style="font-size:11px;word-break:break-all;">
+        <a href="${escapeHtml(p.photoSource)}" target="_blank" rel="noopener">${escapeHtml(p.photoSource)}</a></div>`;
+  }
+
+  html += `<div class="btn-row">
+    ${p.matched ? `<button class="btn small" onclick="closeProfileModal();viewOnMap(${p.id})">View on map</button>` : ''}
+    ${p.matched ? `<button class="btn ${inShort ? 'secondary' : 'teal'} small" onclick="toggleShortlist('${p.openalexId}');openProfileModal(${p.id});renderDirectory();">${inShort ? '− Remove from shortlist' : '+ Add to shortlist'}</button>` : ''}
+    ${p.email ? `<button class="btn secondary small" onclick="window.location.href='mailto:${escapeHtml(p.email)}'">✉ Email</button>` : ''}
+  </div>`;
+
+  document.getElementById('profile-modal-body').innerHTML = html;
+  document.getElementById('profile-modal').classList.add('open');
+}
+function closeProfileModal() { document.getElementById('profile-modal').classList.remove('open'); }
+
+/* ============================================================
+   SCHOOLS VIEW
+   ============================================================ */
+function renderSchools() {
+  const list = getDirectoryList();
+  const map = {};
+  list.forEach(p => {
+    const key = p.school || 'Unspecified';
+    if (!map[key]) map[key] = { name: key, members: [], pubs: 0, cites: 0, matched: 0, topics: new Set() };
+    const g = map[key];
+    g.members.push(p);
+    g.pubs += p.publications || 0;
+    g.cites += p.citationCount || 0;
+    if (p.matched) g.matched++;
+    (p.topics || []).forEach(t => g.topics.add(t));
+  });
+  const groups = Object.values(map).sort((a, b) => b.members.length - a.members.length);
+  const max = Math.max(1, ...groups.map(g => g.members.length));
+  document.getElementById('nav-count-schools').textContent = groups.length;
+
+  document.getElementById('schools-container').innerHTML = groups.map(g => `
+    <div class="school-card">
+      <h3>${escapeHtml(g.name)}</h3>
+      <div style="font-size:11.5px;color:var(--secondary);">${g.members.length} researcher${g.members.length === 1 ? '' : 's'} · ${g.matched} on the map</div>
+      <div class="school-bar"><span style="width:${(g.members.length / max * 100).toFixed(1)}%"></span></div>
+      <div class="stat-item"><span class="stat-label">Total publications</span><span class="stat-value">${g.pubs.toLocaleString()}</span></div>
+      <div class="stat-item"><span class="stat-label">Total citations</span><span class="stat-value">${g.cites.toLocaleString()}</span></div>
+      <div class="stat-item"><span class="stat-label">Distinct topics</span><span class="stat-value">${g.topics.size}</span></div>
+      <div class="avatar-row">
+        ${g.members.map(m => m.photo
+          ? `<img src="${escapeHtml(m.photo)}" alt="${escapeHtml(m.name)}" title="${escapeHtml(m.name)}" loading="lazy"
+               data-initials="${escapeHtml(initials(m.name))}" data-fbclass="avatar-fb" onerror="photoFallback(this)" onclick="openProfileModal(${m.id})">`
+          : `<div title="${escapeHtml(m.name)}" onclick="openProfileModal(${m.id})">${escapeHtml(initials(m.name))}</div>`).join('')}
+      </div>
+      <div class="btn-row">
+        <button class="btn secondary small" onclick="filterDirectoryBySchool('${escapeHtml(g.name).replace(/'/g, "\\'")}')">View researchers</button>
+      </div>
+    </div>`).join('');
+}
+function filterDirectoryBySchool(school) {
+  switchView('directory');
+  document.getElementById('dir-search').value = '';
+  document.getElementById('dir-school').value = school;
+  renderDirectory();
+}
+
+/* ============================================================
+   TOPICS VIEW
+   ============================================================ */
+function renderTopics() {
+  const list = getDirectoryList().filter(p => p.matched);
+  const map = {};
+  list.forEach(p => (p.topics || []).forEach(t => {
+    if (!map[t]) map[t] = [];
+    map[t].push(p);
+  }));
+  let entries = Object.entries(map);
+  document.getElementById('nav-count-topics').textContent = entries.length;
+
+  const q = (document.getElementById('topic-search').value || '').trim().toLowerCase();
+  if (q) entries = entries.filter(([t, people]) =>
+    t.toLowerCase().includes(q) || people.some(p => p.name.toLowerCase().includes(q)));
+
+  const sort = document.getElementById('topic-sort').value;
+  entries.sort(sort === 'name'
+    ? (a, b) => a[0].localeCompare(b[0])
+    : (a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0]));
+
+  const box = document.getElementById('topics-container');
+  if (entries.length === 0) { box.innerHTML = '<div class="empty-state">No topics match your filter.</div>'; return; }
+
+  box.innerHTML = entries.map(([t, people]) => `
+    <div class="topic-row">
+      <span class="count-pill">${people.length}</span>
+      <div class="tname">${escapeHtml(t)}</div>
+      <div class="tpeople">${people.map(p => `<span onclick="openProfileModal(${p.id})">${escapeHtml(p.name)}</span>`).join(' · ')}</div>
+    </div>`).join('');
+}
+
+/* ============================================================
+   SHORTLIST VIEW
+   ============================================================ */
+function renderShortlistView() {
+  const box = document.getElementById('shortlist-view-container');
+  if (!box) return;
+  const people = getDirectoryList().filter(p => p.openalexId && shortlist.includes(p.openalexId));
+  if (people.length === 0) {
+    box.innerHTML = '<div class="empty-state">Your shortlist is empty.<br>Add researchers from the Researchers tab or from the map.</div>';
+    return;
+  }
+  box.innerHTML = `<div class="dir-grid">` + people.map(p => `
+    <div class="rcard">
+      <div class="rcard-top">
+        ${photoTag(p, 'rphoto')}
+        <div style="min-width:0;flex:1;">
+          <div class="rcard-name" onclick="openProfileModal(${p.id})">${escapeHtml(p.name)}</div>
+          <div class="rcard-meta">${escapeHtml(p.designation)}</div>
+          <div class="rcard-meta" style="font-size:11px;">${escapeHtml(p.school)}</div>
+          ${mailLink(p)}
+        </div>
+      </div>
+      <div class="rcard-stats">
+        <div class="rstat"><b>${p.publications ?? '—'}</b>Publications</div>
+        <div class="rstat"><b>${p.citationCount != null ? p.citationCount.toLocaleString() : '—'}</b>Citations</div>
+      </div>
+      <div class="rcard-actions">
+        <button class="btn secondary small" onclick="viewOnMap(${p.id})">View on map</button>
+        <button class="btn secondary small" onclick="toggleShortlist('${p.openalexId}')">− Remove</button>
+      </div>
+    </div>`).join('') + `</div>`;
+}
+function clearShortlist() {
+  if (shortlist.length === 0) return;
+  if (!confirm('Remove all researchers from your shortlist?')) return;
+  shortlist = [];
+  saveShortlist();
+}
+function copyShortlistEmails() {
+  const mails = getDirectoryList()
+    .filter(p => p.openalexId && shortlist.includes(p.openalexId) && p.email)
+    .map(p => p.email);
+  if (!mails.length) { showToast('No emails to copy'); return; }
+  copyText(mails.join(', '), `${mails.length} email${mails.length === 1 ? '' : 's'} copied`);
+}
+
+/* ============================================================
+   EXPORT / CLIPBOARD HELPERS
+   ============================================================ */
+function showToast(msg) {
+  const t = document.getElementById('copy-toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(showToast._timer);
+  showToast._timer = setTimeout(() => t.classList.remove('show'), 1800);
+}
+function copyText(text, msg) {
+  const done = () => showToast(msg || 'Copied');
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
+  } else fallbackCopy(text, done);
+}
+function fallbackCopy(text, done) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); done(); } catch (e) { showToast('Copy failed'); }
+  document.body.removeChild(ta);
+}
+function copyAllEmails() {
+  const mails = getFilteredDirectory().map(p => p.email).filter(Boolean);
+  if (!mails.length) { showToast('No emails to copy'); return; }
+  copyText(mails.join(', '), `${mails.length} email${mails.length === 1 ? '' : 's'} copied`);
+}
+function exportDirectoryCsv() {
+  const rows = getFilteredDirectory();
+  const cols = ['id', 'name', 'designation', 'school', 'email', 'altEmails', 'openalexId', 'orcid',
+    'institution', 'publications', 'citationCount', 'topics', 'clusterLabel', 'onMap'];
+  const esc = v => {
+    if (v == null) return '';
+    const s = Array.isArray(v) ? v.join('; ') : String(v);
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const csv = [cols.join(',')].concat(rows.map(p => cols.map(c =>
+    esc(c === 'onMap' ? (p.matched ? 'yes' : 'no') : p[c])).join(','))).join('\n');
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'iit-mandi-researchers.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast(`Exported ${rows.length} researchers`);
+}
+
+/* ============================================================
+   VIEW INITIALISATION (called once data has loaded)
+   ============================================================ */
+function initViews() {
+  const list = getDirectoryList();
+  document.getElementById('nav-count-researchers').textContent = list.length;
+
+  const schools = [...new Set(list.map(p => p.school).filter(Boolean))].sort();
+  const schoolSel = document.getElementById('dir-school');
+  schoolSel.innerHTML = '<option value="">All schools</option>' +
+    schools.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
+
+  const desigs = [...new Set(list.map(p => p.designation).filter(Boolean))].sort();
+  const desigSel = document.getElementById('dir-desig');
+  desigSel.innerHTML = '<option value="">All designations</option>' +
+    desigs.map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join('');
+
+  const allTopics = new Set();
+  list.forEach(p => (p.topics || []).forEach(t => allTopics.add(t)));
+  document.getElementById('nav-count-topics').textContent = allTopics.size;
+  document.getElementById('nav-count-schools').textContent = schools.length;
+  document.getElementById('nav-count-shortlist').textContent = shortlist.length;
+
+  renderDirectory();
+
+  // deep link: #researchers / #topics etc. opens that tab directly
+  const hash = (location.hash || '').replace('#', '');
+  if (hash && VALID_VIEWS.includes(hash) && hash !== 'map') switchView(hash, true);
+}
+
+window.addEventListener('hashchange', () => {
+  const h = (location.hash || '').replace('#', '');
+  if (VALID_VIEWS.includes(h) && h !== currentView) switchView(h, true);
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'));
+});
+
+/* ============================================================
+   BOOT
+   ============================================================ */
+fetchResearchers();
+</script>
+</body>
+</html>
