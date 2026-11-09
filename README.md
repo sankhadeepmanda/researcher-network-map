@@ -1,6 +1,4 @@
-Here is a complete, polished `README.md` project description tailored to your **IIT Mandi Researcher Network** project:
 
----
 
 # IIT Mandi Researcher Network
 
